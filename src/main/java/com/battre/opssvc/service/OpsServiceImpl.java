@@ -2,8 +2,8 @@ package com.battre.opssvc.service;
 
 import com.battre.opssvc.model.OrderRecordType;
 import com.battre.stubs.services.BatteryStorageInfo;
-import com.battre.stubs.services.BatteryTypeTierCountRequest;
-import com.battre.stubs.services.OpsSvcEmptyResponse;
+import com.battre.stubs.services.ProcessIntakeBatteryOrderRequest;
+import com.battre.stubs.services.ProcessIntakeBatteryOrderResponse;
 import com.battre.stubs.services.OpsSvcGrpc;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
@@ -24,25 +24,27 @@ public class OpsServiceImpl extends OpsSvcGrpc.OpsSvcImplBase {
     }
 
     @Override
-    public void processIntakeBatteryOrder(BatteryTypeTierCountRequest incomingRequest, StreamObserver<OpsSvcEmptyResponse> outgoingResponse){
-        logger.info("processIntakeBatteryOrder invoked");
-        OrderRecordType savedOrderRecord = opsService.createNewOrderRecord(incomingRequest);
+    public void processIntakeBatteryOrder(ProcessIntakeBatteryOrderRequest request, StreamObserver<ProcessIntakeBatteryOrderResponse> responseObserver){
+        logger.info("processIntakeBatteryOrder() invoked");
+        OrderRecordType savedOrderRecord = opsService.createNewOrderRecord(request);
 
         List<BatteryStorageInfo> batteryStorageList =
-                opsService.createNewBatteryStorageList(savedOrderRecord.getOrderId(), incomingRequest.getBatteriesList());
+                opsService.createNewBatteryStorageList(savedOrderRecord.getOrderId(), request.getBatteriesList());
 
         boolean storeBatteriesSuccess = opsService.attemptStoreBatteries(savedOrderRecord.getOrderId(), batteryStorageList);
 
+        boolean addBatteriesToLabBacklogSuccess = false;
         if(storeBatteriesSuccess) {
-            opsService.addBatteriesToLabBacklog(savedOrderRecord.getOrderId());
+            addBatteriesToLabBacklogSuccess = opsService.addBatteriesToLabBacklog(savedOrderRecord.getOrderId());
         }
 
-        OpsSvcEmptyResponse myResponse = OpsSvcEmptyResponse.newBuilder()
+        ProcessIntakeBatteryOrderResponse response = ProcessIntakeBatteryOrderResponse.newBuilder()
+                .setSuccess(addBatteriesToLabBacklogSuccess)
                 .build();
 
-        outgoingResponse.onNext(myResponse);
-        outgoingResponse.onCompleted();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
 
-        logger.info("processIntakeBatteryOrder finished");
+        logger.info("processIntakeBatteryOrder() finished");
     }
 }

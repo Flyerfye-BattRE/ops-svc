@@ -12,8 +12,8 @@ INSERT INTO OpsSvcDb.OrderTypes (order_type_id, order_type) VALUES
 (2, 'Output'),
 (3, 'Demo');
 
--- Insert statements for the "BatteryStatusTypes" table
-INSERT INTO OpsSvcDb.BatteryStatusTypes (battery_status_id, status) VALUES
+-- Insert statements for the "BatteryStatus" table
+INSERT INTO OpsSvcDb.BatteryStatus (battery_status_id, status) VALUES
 (1, 'Intake'),
 (2, 'Rejected'),
 (3, 'Testing'),

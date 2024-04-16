@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS OpsSvcDb.BatteryInventory (
   refurb_plan_id INT,
   hold_id INT,
   output_order_id INT,
-  CONSTRAINT battery_status_id FOREIGN KEY (battery_status_id) REFERENCES OpsSvcDb.BatteryStatusTypes(battery_status_id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT battery_status_id FOREIGN KEY (battery_status_id) REFERENCES OpsSvcDb.BatteryStatus(battery_status_id) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT intake_order_id FOREIGN KEY (intake_order_id) REFERENCES OpsSvcDb.OrderRecords(order_id) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT output_order_id FOREIGN KEY (output_order_id) REFERENCES OpsSvcDb.OrderRecords(order_id) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT hold_id FOREIGN KEY (hold_id) REFERENCES OpsSvcDb.HoldRecords(hold_id) ON DELETE NO ACTION ON UPDATE NO ACTION

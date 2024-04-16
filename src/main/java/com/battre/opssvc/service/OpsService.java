@@ -4,16 +4,17 @@ import com.battre.opssvc.model.BatteryInventoryType;
 import com.battre.opssvc.model.OrderRecordType;
 import com.battre.opssvc.repository.BatteryInventoryRepository;
 import com.battre.opssvc.repository.OrderRecordsRepository;
+
 import com.battre.stubs.services.BatteryStorageInfo;
 import com.battre.stubs.services.LabSvcGrpc;
 import com.battre.stubs.services.StorageSvcGrpc;
+import com.battre.stubs.services.ProcessIntakeBatteryOrderRequest;
+import com.battre.stubs.services.ProcessLabBatteriesRequest;
 import com.battre.stubs.services.StoreBatteryRequest;
 import com.battre.stubs.services.StoreBatteryResponse;
 import com.battre.stubs.services.BatteryIdType;
-import com.battre.stubs.services.ProcessLabBatteriesRequest;
-import com.battre.stubs.services.ProcessLabBatteriesResponse;
 import com.battre.stubs.services.BatteryTypeTierCount;
-import com.battre.stubs.services.BatteryTypeTierCountRequest;
+import com.battre.stubs.services.ProcessLabBatteriesResponse;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,8 +44,8 @@ public class OpsService {
     }
     private static final Logger logger = Logger.getLogger(OpsService.class.getName());
 
-    private final BatteryInventoryRepository batteryInventoryRepository;
-    private final OrderRecordsRepository orderRecordsRepository;
+    private final BatteryInventoryRepository batInvRepo;
+    private final OrderRecordsRepository ordRecRepo;
 
     @GrpcClient("storageSvc")
     private StorageSvcGrpc.StorageSvcStub storageSvcClient;
@@ -53,9 +54,9 @@ public class OpsService {
     private LabSvcGrpc.LabSvcStub labSvcClient;
 
     @Autowired
-    public OpsService(BatteryInventoryRepository batteryInventoryRepository, OrderRecordsRepository orderRecordsRepository) {
-        this.batteryInventoryRepository = batteryInventoryRepository;
-        this.orderRecordsRepository = orderRecordsRepository;
+    public OpsService(BatteryInventoryRepository batInvRepo, OrderRecordsRepository ordRecRepo) {
+        this.batInvRepo = batInvRepo;
+        this.ordRecRepo = ordRecRepo;
     }
 
     public boolean attemptStoreBatteries(int orderId, List<BatteryStorageInfo> batteryStorageList) {
@@ -64,7 +65,6 @@ public class OpsService {
         StoreBatteryRequestBuilder.addAllBatteries(batteryStorageList);
 
         CompletableFuture<StoreBatteryResponse> responseFuture = new CompletableFuture<>();
-        // Create a StreamObserver to handle the call asynchronously
         StreamObserver<StoreBatteryResponse> responseObserver = new StreamObserver<>() {
             @Override
             public void onNext(StoreBatteryResponse response) {
@@ -89,16 +89,16 @@ public class OpsService {
         try {
             // Blocks until the response is available
             tryStoreBatteriesSuccess = responseFuture.get(5, TimeUnit.SECONDS).getSuccess();
-            logger.info("tryStoreBatteries responseFuture response: " + tryStoreBatteriesSuccess);
+            logger.info("tryStoreBatteries() responseFuture response: " + tryStoreBatteriesSuccess);
         } catch (Exception e) {
-            logger.severe("tryStoreBatteries responseFuture error: " + e.getMessage());
+            logger.severe("tryStoreBatteries() responseFuture error: " + e.getMessage());
         }
 
         // Order completed => True
-        orderRecordsRepository.markOrderCompleted(orderId);
+        ordRecRepo.markOrderCompleted(orderId);
 
         // Store battery status => Storage / Rejected
-        batteryInventoryRepository.setBatteryStatusesForOrder(
+        batInvRepo.setBatteryStatusesForOrder(
                 orderId,
                 tryStoreBatteriesSuccess ? batteryStatus.Storage.toString() : batteryStatus.Rejected.toString()
         );
@@ -107,14 +107,13 @@ public class OpsService {
     }
 
     public boolean addBatteriesToLabBacklog(int orderId) {
-        List<Object[]> batteryIdTypeIdList = batteryInventoryRepository.getBatteryIdTypeIdsForOrder(orderId);
+        List<Object[]> batteryIdTypeIdList = batInvRepo.getBatteryIdTypeIdsForOrder(orderId);
         List<BatteryIdType> processLabBatteriesList = convertToProcessLabBatteriesList(batteryIdTypeIdList);
 
         ProcessLabBatteriesRequest.Builder ProcessLabBatteriesRequestBuilder = ProcessLabBatteriesRequest.newBuilder();
         ProcessLabBatteriesRequestBuilder.addAllBatteryIdTypes(processLabBatteriesList);
 
         CompletableFuture<ProcessLabBatteriesResponse> responseFuture = new CompletableFuture<>();
-        // Create a StreamObserver to handle the call asynchronously
         StreamObserver<ProcessLabBatteriesResponse> responseObserver = new StreamObserver<>() {
             @Override
             public void onNext(ProcessLabBatteriesResponse response) {
@@ -124,12 +123,12 @@ public class OpsService {
             @Override
             public void onError(Throwable t) {
                 // Handle any errors
-                logger.severe("addBatteriesToLabBacklog() errored: " + t.getMessage());
+                logger.severe("processLabBatteries() errored: " + t.getMessage());
             }
 
             @Override
             public void onCompleted() {
-                logger.info("addBatteriesToLabBacklog() completed");
+                logger.info("processLabBatteries() completed");
             }
         };
 
@@ -140,15 +139,15 @@ public class OpsService {
         try {
             // Blocks until the response is available
             addBatteriesToLabBacklogSuccess = responseFuture.get(5, TimeUnit.SECONDS).getSuccess();
-            logger.info("addBatteriesToLabBacklog responseFuture response: " + addBatteriesToLabBacklogSuccess);
+            logger.info("addBatteriesToLabBacklog() responseFuture response: " + addBatteriesToLabBacklogSuccess);
         } catch (Exception e) {
-            logger.severe("addBatteriesToLabBacklog responseFuture error: " + e.getMessage());
+            logger.severe("addBatteriesToLabBacklog() responseFuture error: " + e.getMessage());
         }
 
         return addBatteriesToLabBacklogSuccess;
     }
 
-    public OrderRecordType createNewOrderRecord(BatteryTypeTierCountRequest request) {
+    public OrderRecordType createNewOrderRecord(ProcessIntakeBatteryOrderRequest request) {
         Random random = new Random();
 
         // Create new order entry
@@ -171,9 +170,9 @@ public class OpsService {
                 notes
         );
 
-        OrderRecordType newOrderRecord = orderRecordsRepository.save(intakeOrderRecord);
+        OrderRecordType newOrderRecord = ordRecRepo.save(intakeOrderRecord);
         logger.info("After saving order record ["+newOrderRecord.getOrderId()+"], count: " +
-                orderRecordsRepository.countOrderRecords());
+                ordRecRepo.countOrderRecords());
         return newOrderRecord;
     }
 
@@ -193,7 +192,7 @@ public class OpsService {
             }
         }
 
-        logger.info("After saving batteries ["+batteryList.size()+"], count: " + batteryInventoryRepository.countBatteryInventory());
+        logger.info("After saving batteries ["+batteryList.size()+"], count: " + batInvRepo.countBatteryInventory());
 
         return batteryStorageList;
     }
@@ -204,14 +203,14 @@ public class OpsService {
         int intakeOrderId = orderId;
         int batteryTypeId = typeId;
 
-        BatteryInventoryType batteryInventory = new BatteryInventoryType(
+        BatteryInventoryType batteryInventoryEntry = new BatteryInventoryType(
                 batteryStatusId,
                 batteryTypeId,
                 intakeOrderId
         );
 
-        logger.info("Creating: " + batteryInventory);
-        return batteryInventoryRepository.save(batteryInventory);
+        logger.info("Creating: " + batteryInventoryEntry);
+        return batInvRepo.save(batteryInventoryEntry);
     }
 
     private List<BatteryIdType> convertToProcessLabBatteriesList(List<Object[]> batteryIdTypeIdList) {
