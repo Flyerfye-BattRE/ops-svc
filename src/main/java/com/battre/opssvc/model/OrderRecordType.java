@@ -11,7 +11,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 
 @Entity
-@Table(name = "OrderRecords", schema = "OpsSvcDb")
+@Table(name = "OrderRecords", schema = "OpsSvcSchema")
 public class OrderRecordType {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

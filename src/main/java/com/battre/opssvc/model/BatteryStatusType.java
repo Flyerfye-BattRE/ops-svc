@@ -8,7 +8,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.GenerationType;
 
 @Entity
-@Table(name = "BatteryStatus", schema = "OpsSvcDb")
+@Table(name = "BatteryStatus", schema = "OpsSvcSchema")
 public class BatteryStatusType {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
