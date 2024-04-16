@@ -33,6 +33,12 @@ public class BatteryInventoryType {
     @Column(name = "output_order_id")
     private Integer outputOrderId;
 
+    public BatteryInventoryType(int batteryStatusId, int batteryTypeId, int intakeOrderId) {
+        this.batteryStatusId = batteryStatusId;
+        this.batteryTypeId = batteryTypeId;
+        this.intakeOrderId = intakeOrderId;
+    }
+
     @Override
     public String toString() {
         return "BatteryInventoryType{" +
@@ -44,12 +50,6 @@ public class BatteryInventoryType {
                 ", holdId=" + holdId +
                 ", outputOrderId=" + outputOrderId +
                 '}';
-    }
-
-    public BatteryInventoryType(int batteryStatusId, int batteryTypeId, int intakeOrderId) {
-        this.batteryStatusId = batteryStatusId;
-        this.batteryTypeId = batteryTypeId;
-        this.intakeOrderId = intakeOrderId;
     }
 
     public int getBatteryId() {

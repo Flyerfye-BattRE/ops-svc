@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Configure Maven settings
+        run: echo "<settings><servers><server><id>github-battre</id><username>${{ secrets.DEPENDENCY_USERNAME }}</username><password>${{ secrets.DEPENDENCY_PASSWORD }}</password></server></servers></settings>" > ~/.m2/settings.xml
+
+      - name: Unit test with Maven
+        run: mvn -B clean test

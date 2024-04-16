@@ -4,7 +4,6 @@ import com.battre.opssvc.model.BatteryInventoryType;
 import com.battre.opssvc.model.OrderRecordType;
 import com.battre.opssvc.repository.BatteryInventoryRepository;
 import com.battre.opssvc.repository.OrderRecordsRepository;
-
 import com.battre.stubs.services.BatteryStorageInfo;
 import com.battre.stubs.services.LabSvcGrpc;
 import com.battre.stubs.services.StorageSvcGrpc;
@@ -30,26 +29,11 @@ import java.util.stream.Collectors;
 
 @Service
 public class OpsService {
-    public static enum batteryStatus{
-        Intake,
-        Rejected,
-        Testing,
-        Refurb,
-        Storage,
-        Hold,
-        Shipping,
-        Received,
-        Destroyed,
-        Lost
-    }
     private static final Logger logger = Logger.getLogger(OpsService.class.getName());
-
     private final BatteryInventoryRepository batInvRepo;
     private final OrderRecordsRepository ordRecRepo;
-
     @GrpcClient("storageSvc")
     private StorageSvcGrpc.StorageSvcStub storageSvcClient;
-
     @GrpcClient("labSvc")
     private LabSvcGrpc.LabSvcStub labSvcClient;
 
@@ -158,7 +142,7 @@ public class OpsService {
         String notes = "";
 
         // Concatenate the type/count info in notes
-        for(BatteryTypeTierCount entry: request.getBatteriesList()) {
+        for (BatteryTypeTierCount entry : request.getBatteriesList()) {
             notes = notes + "[" + entry.getBatteryType() + "]:x" + entry.getBatteryType() + ",";
         }
 
@@ -171,7 +155,7 @@ public class OpsService {
         );
 
         OrderRecordType newOrderRecord = ordRecRepo.save(intakeOrderRecord);
-        logger.info("After saving order record ["+newOrderRecord.getOrderId()+"], count: " +
+        logger.info("After saving order record [" + newOrderRecord.getOrderId() + "], count: " +
                 ordRecRepo.countOrderRecords());
         return newOrderRecord;
     }
@@ -180,8 +164,8 @@ public class OpsService {
         List<BatteryStorageInfo> batteryStorageList = new ArrayList<>();
 
         // Create new batteries
-        for(BatteryTypeTierCount batteryTypeTierCount:batteryList) {
-            for(int i=0; i<batteryTypeTierCount.getBatteryCount(); i++){
+        for (BatteryTypeTierCount batteryTypeTierCount : batteryList) {
+            for (int i = 0; i < batteryTypeTierCount.getBatteryCount(); i++) {
                 BatteryInventoryType newBattery = createNewBattery(orderId, batteryTypeTierCount.getBatteryType());
                 batteryStorageList.add(
                         BatteryStorageInfo.newBuilder()
@@ -192,7 +176,7 @@ public class OpsService {
             }
         }
 
-        logger.info("After saving batteries ["+batteryList.size()+"], count: " + batInvRepo.countBatteryInventory());
+        logger.info("After saving batteries [" + batteryList.size() + "], count: " + batInvRepo.countBatteryInventory());
 
         return batteryStorageList;
     }
@@ -216,9 +200,22 @@ public class OpsService {
     private List<BatteryIdType> convertToProcessLabBatteriesList(List<Object[]> batteryIdTypeIdList) {
         return batteryIdTypeIdList.stream()
                 .map(batteryIdTypeId -> BatteryIdType.newBuilder()
-                .setBatteryId((Integer) batteryIdTypeId[0])
-                .setBatteryTypeId((Integer) batteryIdTypeId[1])
-                .build())
+                        .setBatteryId((Integer) batteryIdTypeId[0])
+                        .setBatteryTypeId((Integer) batteryIdTypeId[1])
+                        .build())
                 .collect(Collectors.toList());
+    }
+
+    public static enum batteryStatus {
+        Intake,
+        Rejected,
+        Testing,
+        Refurb,
+        Storage,
+        Hold,
+        Shipping,
+        Received,
+        Destroyed,
+        Lost
     }
 }

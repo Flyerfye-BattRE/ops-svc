@@ -1,9 +1,9 @@
 package com.battre.opssvc.repository;
 
 import com.battre.opssvc.model.BatteryInventoryType;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,12 +24,12 @@ public interface BatteryInventoryRepository extends JpaRepository<BatteryInvento
                 "WHERE status = :batteryStatus" +
             ") " +
             "WHERE intakeOrderId = :orderId")
-    void setBatteryStatusesForOrder(@Param("orderId")int orderId,
+    void setBatteryStatusesForOrder(@Param("orderId") int orderId,
                                     @Param("batteryStatus") String batteryStatus);
 
     @Query("SELECT batteryId, batteryTypeId " +
             "FROM BatteryInventoryType " +
             "WHERE intakeOrderId = :orderId " +
             "GROUP BY batteryId, batteryTypeId")
-    List<Object[]> getBatteryIdTypeIdsForOrder(@Param("orderId")int orderId);
+    List<Object[]> getBatteryIdTypeIdsForOrder(@Param("orderId") int orderId);
 }

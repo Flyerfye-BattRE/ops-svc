@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+
 import java.sql.Timestamp;
 import java.time.Instant;
 
@@ -38,6 +39,15 @@ public class OrderRecordType {
     @Column(name = "notes", length = 45)
     private String notes;
 
+    public OrderRecordType(int orderTypeId, int orderSectorId, int customerId, boolean completed, String notes) {
+        this.orderDate = Timestamp.from(Instant.now());
+        this.orderTypeId = orderTypeId;
+        this.orderSectorId = orderSectorId;
+        this.customerId = customerId;
+        this.completed = completed;
+        this.notes = notes;
+    }
+
     @Override
     public String toString() {
         return "OrderRecordType{" +
@@ -50,15 +60,6 @@ public class OrderRecordType {
                 ", completed=" + completed +
                 ", notes='" + notes + '\'' +
                 '}';
-    }
-
-    public OrderRecordType(int orderTypeId, int orderSectorId, int customerId, boolean completed, String notes) {
-        this.orderDate = Timestamp.from(Instant.now());
-        this.orderTypeId = orderTypeId;
-        this.orderSectorId = orderSectorId;
-        this.customerId = customerId;
-        this.completed = completed;
-        this.notes = notes;
     }
 
     public int getOrderId() {

@@ -18,5 +18,5 @@ public interface OrderRecordsRepository extends JpaRepository<OrderRecordType, I
     @Query("UPDATE OrderRecordType " +
             "SET completed = true " +
             "WHERE orderId = :orderId")
-    Integer markOrderCompleted(@Param("orderId")int orderId);
+    Integer markOrderCompleted(@Param("orderId") int orderId);
 }
