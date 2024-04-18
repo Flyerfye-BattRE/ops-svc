@@ -42,9 +42,7 @@ WHERE NOT EXISTS (
 
 -- Insert statements for the "CustomerData" table
 INSERT INTO OpsSvcSchema.CustomerData (customer_id, contact_name, email, phone, address, loyalty_id)
-SELECT * FROM (VALUES
-    (1, 'Test Customer', 'customer@test.com', '(555)555-5555', '555 Test Place, City, State, USA', uuid_generate_v4());
-) AS v (customer_id, contact_name, email, phone, address, loyalty_id)
+SELECT 1, 'Test Customer', 'customer@test.com', '(555)555-5555', '555 Test Place, City, State, USA', RANDOM_UUID()
 WHERE NOT EXISTS (
     SELECT 1 FROM OpsSvcSchema.CustomerData
 );

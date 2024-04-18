@@ -3,8 +3,6 @@
 -- -----------------------------------------------------
 CREATE SCHEMA IF NOT EXISTS OpsSvcSchema;
 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 CREATE TABLE IF NOT EXISTS OpsSvcSchema.OrderSectors (
   order_sector_id SERIAL PRIMARY KEY,
   order_sector VARCHAR(20) NOT NULL
