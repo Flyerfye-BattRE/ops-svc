@@ -1,5 +1,5 @@
 -- Insert statements for the "OrderSectors" table
-INSERT INTO OpsSvcSchema.OrderSectors (order_sector_id, order_sector) 
+INSERT INTO OpsSvcSchema.OrderSectors (order_sector_id, order_sector)
 SELECT * FROM (VALUES
 	(1, 'Personal'),
 	(2, 'Business'),
@@ -12,7 +12,7 @@ WHERE NOT EXISTS (
 );
 
 -- Insert statements for the "OrderTypes" table
-INSERT INTO OpsSvcSchema.OrderTypes (order_type_id, order_type) 
+INSERT INTO OpsSvcSchema.OrderTypes (order_type_id, order_type)
 SELECT * FROM (VALUES
 	(1, 'Intake'),
 	(2, 'Output'),
@@ -23,7 +23,7 @@ WHERE NOT EXISTS (
 );
 
 -- Insert statements for the "BatteryStatus" table
-INSERT INTO OpsSvcSchema.BatteryStatus (battery_status_id, status) 
+INSERT INTO OpsSvcSchema.BatteryStatus (battery_status_id, status)
 SELECT * FROM (VALUES
 	(1, 'Intake'),
 	(2, 'Rejected'),
@@ -41,11 +41,9 @@ WHERE NOT EXISTS (
 );
 
 -- Insert statements for the "CustomerData" table
-INSERT INTO OpsSvcSchema.CustomerData (customer_id, contact_name, email, phone, address, loyalty_id) 
+INSERT INTO OpsSvcSchema.CustomerData (customer_id, contact_name, email, phone, address, loyalty_id)
 SELECT * FROM (VALUES
-	(1, 'John Doe', 'jdoe@example.com', '(555)123-4567', '555 Elm St, Boulder, Colorado, USA', uuid_generate_v4()),
-	(2, 'Ender', 'endy@example.com', '(555)654-6969', '8754 85th N St, Fishers, Indiana, USA', uuid_generate_v4()),
-	(3, 'Sarah Jane', 'sjane@otherexample.com', '(555)987-6543', '111 First Ave, Austin, Texas, USA', uuid_generate_v4())
+    (1, 'Test Customer', 'customer@test.com', '(555)555-5555', '555 Test Place, City, State, USA', uuid_generate_v4());
 ) AS v (customer_id, contact_name, email, phone, address, loyalty_id)
 WHERE NOT EXISTS (
     SELECT 1 FROM OpsSvcSchema.CustomerData
