@@ -13,10 +13,15 @@ public interface OrderRecordsRepository extends JpaRepository<OrderRecordType, I
     @Query("SELECT COUNT(*) FROM OrderRecordType")
     Integer countOrderRecords();
 
+    @Query("SELECT completed " +
+            "FROM OrderRecordType " +
+            "WHERE orderId = :orderId")
+    Boolean getOrderCompleted(@Param("orderId") int orderId);
+
     @Transactional
     @Modifying
     @Query("UPDATE OrderRecordType " +
             "SET completed = true " +
             "WHERE orderId = :orderId")
-    Integer markOrderCompleted(@Param("orderId") int orderId);
+    void setOrderCompleted(@Param("orderId") int orderId);
 }

@@ -79,10 +79,10 @@ public class OpsService {
         }
 
         // Order completed => True
-        ordRecRepo.markOrderCompleted(orderId);
+        ordRecRepo.setOrderCompleted(orderId);
 
         // Store battery status => Storage / Rejected
-        batInvRepo.setBatteryStatusesForOrder(
+        batInvRepo.setBatteryStatusesForIntakeOrder(
                 orderId,
                 tryStoreBatteriesSuccess ? batteryStatus.Storage.toString() : batteryStatus.Rejected.toString()
         );
@@ -91,7 +91,7 @@ public class OpsService {
     }
 
     public boolean addBatteriesToLabBacklog(int orderId) {
-        List<Object[]> batteryIdTypeIdList = batInvRepo.getBatteryIdTypeIdsForOrder(orderId);
+        List<Object[]> batteryIdTypeIdList = batInvRepo.getBatteryIdTypeIdsForIntakeOrder(orderId);
         List<BatteryIdType> processLabBatteriesList = convertToProcessLabBatteriesList(batteryIdTypeIdList);
 
         ProcessLabBatteriesRequest.Builder ProcessLabBatteriesRequestBuilder = ProcessLabBatteriesRequest.newBuilder();
@@ -197,7 +197,7 @@ public class OpsService {
         return batInvRepo.save(batteryInventoryEntry);
     }
 
-    private List<BatteryIdType> convertToProcessLabBatteriesList(List<Object[]> batteryIdTypeIdList) {
+    public static List<BatteryIdType> convertToProcessLabBatteriesList(List<Object[]> batteryIdTypeIdList) {
         return batteryIdTypeIdList.stream()
                 .map(batteryIdTypeId -> BatteryIdType.newBuilder()
                         .setBatteryId((Integer) batteryIdTypeId[0])
