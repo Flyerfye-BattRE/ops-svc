@@ -4,16 +4,16 @@ import com.battre.opssvc.model.BatteryInventoryType;
 import com.battre.opssvc.model.OrderRecordType;
 import com.battre.opssvc.repository.BatteryInventoryRepository;
 import com.battre.opssvc.repository.OrderRecordsRepository;
+import com.battre.stubs.services.BatteryIdType;
 import com.battre.stubs.services.BatteryStorageInfo;
+import com.battre.stubs.services.BatteryTypeTierCount;
 import com.battre.stubs.services.LabSvcGrpc;
-import com.battre.stubs.services.StorageSvcGrpc;
 import com.battre.stubs.services.ProcessIntakeBatteryOrderRequest;
 import com.battre.stubs.services.ProcessLabBatteriesRequest;
+import com.battre.stubs.services.ProcessLabBatteriesResponse;
+import com.battre.stubs.services.StorageSvcGrpc;
 import com.battre.stubs.services.StoreBatteryRequest;
 import com.battre.stubs.services.StoreBatteryResponse;
-import com.battre.stubs.services.BatteryIdType;
-import com.battre.stubs.services.BatteryTypeTierCount;
-import com.battre.stubs.services.ProcessLabBatteriesResponse;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,8 +28,8 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Service
-public class OpsService {
-    private static final Logger logger = Logger.getLogger(OpsService.class.getName());
+public class OpsSvc {
+    private static final Logger logger = Logger.getLogger(OpsSvc.class.getName());
     private final BatteryInventoryRepository batInvRepo;
     private final OrderRecordsRepository ordRecRepo;
     @GrpcClient("storageSvc")
@@ -38,12 +38,21 @@ public class OpsService {
     private LabSvcGrpc.LabSvcStub labSvcClient;
 
     @Autowired
-    public OpsService(BatteryInventoryRepository batInvRepo, OrderRecordsRepository ordRecRepo) {
+    public OpsSvc(BatteryInventoryRepository batInvRepo,
+                  OrderRecordsRepository ordRecRepo,
+                  StorageSvcGrpc.StorageSvcStub storageSvcClient,
+                  LabSvcGrpc.LabSvcStub labSvcClient
+    ) {
         this.batInvRepo = batInvRepo;
         this.ordRecRepo = ordRecRepo;
+        this.storageSvcClient = storageSvcClient;
+        this.labSvcClient = labSvcClient;
     }
 
-    public boolean attemptStoreBatteries(int orderId, List<BatteryStorageInfo> batteryStorageList) {
+    public boolean attemptStoreBatteries(int orderId, List<BatteryTypeTierCount> batteryList) {
+        //creates the battery entries in the battery inventory table and assembles a list for storage service
+        List<BatteryStorageInfo> batteryStorageList = createNewBatteryStorageList(orderId, batteryList);
+
         StoreBatteryRequest.Builder StoreBatteryRequestBuilder = StoreBatteryRequest.newBuilder();
         StoreBatteryRequestBuilder.setOrderId(orderId);
         StoreBatteryRequestBuilder.addAllBatteries(batteryStorageList);
@@ -143,7 +152,7 @@ public class OpsService {
 
         // Concatenate the type/count info in notes
         for (BatteryTypeTierCount entry : request.getBatteriesList()) {
-            notes = notes + "[" + entry.getBatteryType() + "]:x" + entry.getBatteryType() + ",";
+            notes = notes + "[" + entry.getBatteryType() + "]:x" + entry.getBatteryCount() + ",";
         }
 
         OrderRecordType intakeOrderRecord = new OrderRecordType(
@@ -160,7 +169,7 @@ public class OpsService {
         return newOrderRecord;
     }
 
-    public List<BatteryStorageInfo> createNewBatteryStorageList(int orderId, List<BatteryTypeTierCount> batteryList) {
+    private List<BatteryStorageInfo> createNewBatteryStorageList(int orderId, List<BatteryTypeTierCount> batteryList) {
         List<BatteryStorageInfo> batteryStorageList = new ArrayList<>();
 
         // Create new batteries
@@ -181,7 +190,7 @@ public class OpsService {
         return batteryStorageList;
     }
 
-    private BatteryInventoryType createNewBattery(int orderId, int typeId) {
+    public BatteryInventoryType createNewBattery(int orderId, int typeId) {
         // Create new battery entry
         int batteryStatusId = 1; //Always 1 which corresponds to 'intake'
         int intakeOrderId = orderId;

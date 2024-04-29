@@ -1,6 +1,6 @@
 package com.battre.opssvc.repository;
 
-import com.battre.opssvc.service.OpsService;
+import com.battre.opssvc.service.OpsSvc;
 import com.battre.stubs.services.BatteryIdType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,7 +12,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.util.List;
 import java.util.logging.Logger;
 
-import static com.battre.opssvc.service.OpsService.convertToProcessLabBatteriesList;
+import static com.battre.opssvc.service.OpsSvc.convertToProcessLabBatteriesList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(SpringExtension.class)
@@ -38,19 +38,19 @@ public class BatteryInventoryRepositoryTest {
         // Verify the result
         List<String> statuses = batInvRepo.getBatteryStatusesForIntakeOrder(1);
         assertEquals(1, statuses.size());
-        assertEquals(OpsService.batteryStatus.Testing.toString(),
+        assertEquals(OpsSvc.batteryStatus.Testing.toString(),
                 batInvRepo.getBatteryStatusesForIntakeOrder(1).get(0));
     }
 
     @Test
     @Sql(scripts = {"/testdb/test-bir-populateOrderRecords.sql", "/testdb/test-bir-populateBatteryInventory.sql"})
     public void testSetBatteryStatusesForIntakeOrder() {
-        batInvRepo.setBatteryStatusesForIntakeOrder(2, OpsService.batteryStatus.Storage.toString());
+        batInvRepo.setBatteryStatusesForIntakeOrder(2, OpsSvc.batteryStatus.Storage.toString());
 
         // Verify the result
         List<String> statuses = batInvRepo.getBatteryStatusesForIntakeOrder(2);
         assertEquals(1, statuses.size());
-        assertEquals(OpsService.batteryStatus.Storage.toString(),
+        assertEquals(OpsSvc.batteryStatus.Storage.toString(),
                 statuses.get(0));
     }
 
