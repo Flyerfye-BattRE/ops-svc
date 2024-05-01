@@ -18,6 +18,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -42,6 +43,8 @@ class OpsSvcTests {
     private StorageSvcGrpc.StorageSvcStub storageSvcClient;
     @Mock
     private LabSvcGrpc.LabSvcStub labSvcClient;
+
+    @InjectMocks
     private OpsSvc opsSvc;
 
     private AutoCloseable closeable;
@@ -67,7 +70,9 @@ class OpsSvcTests {
     @BeforeEach
     public void openMocks() {
         closeable = MockitoAnnotations.openMocks(this);
-        opsSvc = new OpsSvc(batInvRepo, ordRecRepo, storageSvcClient, labSvcClient);
+        opsSvc = new OpsSvc(batInvRepo, ordRecRepo);
+        opsSvc.setStorageSvcClient(storageSvcClient);
+        opsSvc.setLabSvcClient(labSvcClient);
     }
 
     @AfterEach

@@ -39,13 +39,17 @@ public class OpsSvc {
 
     @Autowired
     public OpsSvc(BatteryInventoryRepository batInvRepo,
-                  OrderRecordsRepository ordRecRepo,
-                  StorageSvcGrpc.StorageSvcStub storageSvcClient,
-                  LabSvcGrpc.LabSvcStub labSvcClient
+                  OrderRecordsRepository ordRecRepo
     ) {
         this.batInvRepo = batInvRepo;
         this.ordRecRepo = ordRecRepo;
+    }
+
+    public void setStorageSvcClient(StorageSvcGrpc.StorageSvcStub storageSvcClient){
         this.storageSvcClient = storageSvcClient;
+    }
+
+    public void setLabSvcClient(LabSvcGrpc.LabSvcStub labSvcClient){
         this.labSvcClient = labSvcClient;
     }
 
