@@ -27,6 +27,18 @@ public interface BatteryInventoryRepository extends JpaRepository<BatteryInvento
     void setBatteryStatusesForIntakeOrder(@Param("orderId") int orderId,
                                           @Param("batteryStatus") String batteryStatus);
 
+    @Transactional
+    @Modifying
+    @Query("UPDATE BatteryInventoryType " +
+            "SET batteryStatusId = (" +
+                "SELECT batteryStatusId " +
+                "FROM BatteryStatusType " +
+                "WHERE status = :batteryStatus" +
+            ") " +
+            "WHERE batteryId = :batteryId")
+    void setBatteryStatusForBatteryId(@Param("batteryId") int batteryId,
+                                      @Param("batteryStatus") String batteryStatus);
+
     @Query("SELECT bst.status " +
             "FROM BatteryInventoryType AS bit " +
             "INNER JOIN BatteryStatusType AS bst ON bst.batteryStatusId = bit.batteryStatusId " +

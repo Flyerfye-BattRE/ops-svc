@@ -1,5 +1,6 @@
 package com.battre.opssvc.service;
 
+import com.battre.opssvc.enums.BatteryStatus;
 import com.battre.opssvc.model.BatteryInventoryType;
 import com.battre.opssvc.model.OrderRecordType;
 import com.battre.opssvc.repository.BatteryInventoryRepository;
@@ -97,7 +98,7 @@ public class OpsSvc {
         // Store battery status => Storage / Rejected
         batInvRepo.setBatteryStatusesForIntakeOrder(
                 orderId,
-                tryStoreBatteriesSuccess ? batteryStatus.Storage.toString() : batteryStatus.Rejected.toString()
+                tryStoreBatteriesSuccess ?  BatteryStatus.STORAGE.toString() : BatteryStatus.REJECTED.toString()
         );
 
         return tryStoreBatteriesSuccess;
@@ -131,7 +132,6 @@ public class OpsSvc {
 
         labSvcClient.processLabBatteries(ProcessLabBatteriesRequestBuilder.build(), responseObserver);
 
-
         boolean addBatteriesToLabBacklogSuccess = false;
         try {
             // Blocks until the response is available
@@ -142,6 +142,11 @@ public class OpsSvc {
         }
 
         return addBatteriesToLabBacklogSuccess;
+    }
+
+    public boolean updateBatteryStatus(int batteryId, BatteryStatus batteryStatus) {
+        batInvRepo.setBatteryStatusesForIntakeOrder(batteryId, batteryStatus.toString());
+        return true;
     }
 
     public OrderRecordType createNewOrderRecord(ProcessIntakeBatteryOrderRequest request) {
@@ -219,16 +224,5 @@ public class OpsSvc {
                 .collect(Collectors.toList());
     }
 
-    public static enum batteryStatus {
-        Intake,
-        Rejected,
-        Testing,
-        Refurb,
-        Storage,
-        Hold,
-        Shipping,
-        Received,
-        Destroyed,
-        Lost
-    }
+
 }

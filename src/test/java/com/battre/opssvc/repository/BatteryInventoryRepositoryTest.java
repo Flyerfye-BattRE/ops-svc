@@ -1,5 +1,6 @@
 package com.battre.opssvc.repository;
 
+import com.battre.opssvc.enums.BatteryStatus;
 import com.battre.opssvc.service.OpsSvc;
 import com.battre.stubs.services.BatteryIdType;
 import org.junit.jupiter.api.Test;
@@ -38,19 +39,19 @@ public class BatteryInventoryRepositoryTest {
         // Verify the result
         List<String> statuses = batInvRepo.getBatteryStatusesForIntakeOrder(1);
         assertEquals(1, statuses.size());
-        assertEquals(OpsSvc.batteryStatus.Testing.toString(),
+        assertEquals(BatteryStatus.TESTING.toString(),
                 batInvRepo.getBatteryStatusesForIntakeOrder(1).get(0));
     }
 
     @Test
     @Sql(scripts = {"/testdb/test-bir-populateOrderRecords.sql", "/testdb/test-bir-populateBatteryInventory.sql"})
     public void testSetBatteryStatusesForIntakeOrder() {
-        batInvRepo.setBatteryStatusesForIntakeOrder(2, OpsSvc.batteryStatus.Storage.toString());
+        batInvRepo.setBatteryStatusesForIntakeOrder(2, BatteryStatus.STORAGE.toString());
 
         // Verify the result
         List<String> statuses = batInvRepo.getBatteryStatusesForIntakeOrder(2);
         assertEquals(1, statuses.size());
-        assertEquals(OpsSvc.batteryStatus.Storage.toString(),
+        assertEquals(BatteryStatus.STORAGE.toString(),
                 statuses.get(0));
     }
 

@@ -56,10 +56,6 @@ public class BatteryInventoryType {
         return batteryId;
     }
 
-    public void setBatteryId(int batteryId) {
-        this.batteryId = batteryId;
-    }
-
     public int getBatteryStatusId() {
         return batteryStatusId;
     }

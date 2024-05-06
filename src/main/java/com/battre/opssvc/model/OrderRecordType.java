@@ -66,10 +66,6 @@ public class OrderRecordType {
         return orderId;
     }
 
-    public void setOrderId(int orderId) {
-        this.orderId = orderId;
-    }
-
     public Timestamp getOrderDate() {
         return orderDate;
     }

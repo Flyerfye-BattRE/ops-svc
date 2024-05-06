@@ -129,7 +129,7 @@ class OpsSvcTests {
 
         assertTrue(result);
         verify(ordRecRepo).setOrderCompleted(orderId);
-        verify(batInvRepo).setBatteryStatusesForIntakeOrder(orderId, "Storage");
+        verify(batInvRepo).setBatteryStatusesForIntakeOrder(orderId, "STORAGE");
 
         // check the contents of battery inventory entry that was actually generated for saving
         ArgumentCaptor<BatteryInventoryType> captor = ArgumentCaptor.forClass(BatteryInventoryType.class);
@@ -164,7 +164,7 @@ class OpsSvcTests {
 
         assertFalse(result);
         verify(ordRecRepo).setOrderCompleted(orderId);
-        verify(batInvRepo).setBatteryStatusesForIntakeOrder(orderId, "Rejected");
+        verify(batInvRepo).setBatteryStatusesForIntakeOrder(orderId, "REJECTED");
 
         // check the contents of battery inventory entry that was actually generated for saving
         ArgumentCaptor<BatteryInventoryType> captor = ArgumentCaptor.forClass(BatteryInventoryType.class);

@@ -1,9 +1,14 @@
 package com.battre.opssvc.service;
 
+import com.battre.opssvc.enums.BatteryStatus;
 import com.battre.opssvc.model.OrderRecordType;
 import com.battre.stubs.services.OpsSvcGrpc;
 import com.battre.stubs.services.ProcessIntakeBatteryOrderRequest;
 import com.battre.stubs.services.ProcessIntakeBatteryOrderResponse;
+import com.battre.stubs.services.UpdateBatteriesStatusesRequest;
+import com.battre.stubs.services.UpdateBatteriesStatusesResponse;
+import com.battre.stubs.services.UpdateBatteryStatusRequest;
+import com.battre.stubs.services.UpdateBatteryStatusResponse;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,5 +46,46 @@ public class OpsSvcImpl extends OpsSvcGrpc.OpsSvcImplBase {
         responseObserver.onCompleted();
 
         logger.info("processIntakeBatteryOrder() finished");
+    }
+
+    @Override
+    public void updateBatteryStatus(UpdateBatteryStatusRequest request, StreamObserver<UpdateBatteryStatusResponse> responseObserver) {
+        int batteryId = request.getBatteries().getBatteryId();
+        String batteryStatus = request.getBatteries().getBatteryStatus().toString();
+        logger.info("updateBatteryStatus() invoked for [" + batteryId + "] and status [" + batteryStatus + "]");
+
+        boolean updateBatteryStatusSuccess = false;
+        switch(batteryStatus) {
+            case "UNKNOWN":
+            case "INTAKE":
+            case "REJECTED":
+            case "TESTING":
+            case "REFURB":
+            case "STORAGE":
+            case "HOLD":
+            case "SHIPPING":
+            case "RECEIVED":
+            case "DESTROYED":
+            case "LOST":
+                updateBatteryStatusSuccess = opsSvc.updateBatteryStatus(batteryId, BatteryStatus.valueOf(batteryStatus));
+                break;
+            default:
+                logger.severe("This battery status [" + batteryStatus + "] is currently not implemented");
+                break;
+        }
+
+        UpdateBatteryStatusResponse response = UpdateBatteryStatusResponse.newBuilder()
+                .setSuccess(updateBatteryStatusSuccess)
+                .build();
+
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+
+        logger.info("updateBatteryStatus() finished");
+    }
+
+    @Override
+    public void updateBatteriesStatuses(UpdateBatteriesStatusesRequest request, StreamObserver<UpdateBatteriesStatusesResponse> responseObserver) {
+
     }
 }

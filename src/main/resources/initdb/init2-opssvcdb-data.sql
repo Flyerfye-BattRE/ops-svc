@@ -25,16 +25,17 @@ WHERE NOT EXISTS (
 -- Insert statements for the "BatteryStatus" table
 INSERT INTO OpsSvcSchema.BatteryStatus (battery_status_id, status) 
 SELECT * FROM (VALUES
-	(1, 'Intake'),
-	(2, 'Rejected'),
-	(3, 'Testing'),
-	(4, 'Refurb'),
-	(5, 'Storage'),
-	(6, 'Hold'),
-	(7, 'Shipping'),
-	(8, 'Received'),
-	(9, 'Destroyed'),
-	(10, 'Lost')
+	(0, 'UNKNOWN'),
+	(1, 'INTAKE'),
+	(2, 'REJECTED'),
+	(3, 'TESTING'),
+	(4, 'REFURB'),
+	(5, 'STORAGE'),
+	(6, 'HOLD'),
+	(7, 'SHIPPING'),
+	(8, 'RECEIVED'),
+	(9, 'DESTROYED'),
+	(10, 'LOST')
 ) AS v (battery_status_id, status)
 WHERE NOT EXISTS (
     SELECT 1 FROM OpsSvcSchema.BatteryStatus

@@ -22,15 +22,7 @@ public class BatteryStatusType {
         return batteryStatusId;
     }
 
-    public void setBatteryStatusId(int batteryStatusId) {
-        this.batteryStatusId = batteryStatusId;
-    }
-
     public String getStatus() {
         return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 }
