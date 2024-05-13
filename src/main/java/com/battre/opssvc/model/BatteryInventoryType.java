@@ -24,9 +24,6 @@ public class BatteryInventoryType {
     @Column(name = "intake_order_id", nullable = false)
     private int intakeOrderId;
 
-    @Column(name = "refurb_plan_id")
-    private Integer refurbPlanId;
-
     @Column(name = "hold_id")
     private Integer holdId;
 
@@ -46,7 +43,6 @@ public class BatteryInventoryType {
                 ", batteryStatusId=" + batteryStatusId +
                 ", batteryTypeId=" + batteryTypeId +
                 ", intakeOrderId=" + intakeOrderId +
-                ", refurbPlanId=" + refurbPlanId +
                 ", holdId=" + holdId +
                 ", outputOrderId=" + outputOrderId +
                 '}';
@@ -78,14 +74,6 @@ public class BatteryInventoryType {
 
     public void setIntakeOrderId(int intakeOrderId) {
         this.intakeOrderId = intakeOrderId;
-    }
-
-    public Integer getRefurbPlanId() {
-        return refurbPlanId;
-    }
-
-    public void setRefurbPlanId(Integer refurbPlanId) {
-        this.refurbPlanId = refurbPlanId;
     }
 
     public Integer getHoldId() {

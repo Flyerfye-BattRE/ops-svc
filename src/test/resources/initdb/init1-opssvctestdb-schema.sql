@@ -53,7 +53,6 @@ CREATE TABLE IF NOT EXISTS OpsSvcSchema.BatteryInventory (
   battery_status_id INT NOT NULL,
   battery_type_id INT NOT NULL,
   intake_order_id INT NOT NULL,
-  refurb_plan_id INT,
   hold_id INT,
   output_order_id INT,
   CONSTRAINT battery_status_id FOREIGN KEY (battery_status_id) REFERENCES OpsSvcSchema.BatteryStatus(battery_status_id) ON DELETE NO ACTION ON UPDATE NO ACTION,
