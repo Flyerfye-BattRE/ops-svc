@@ -1,5 +1,6 @@
 package com.battre.opssvc.service;
 
+import com.battre.grpcifc.GrpcMethodInvoker;
 import com.battre.opssvc.enums.BatteryStatus;
 import com.battre.opssvc.model.BatteryInventoryType;
 import com.battre.opssvc.model.OrderRecordType;
@@ -8,15 +9,12 @@ import com.battre.opssvc.repository.OrderRecordsRepository;
 import com.battre.stubs.services.BatteryIdType;
 import com.battre.stubs.services.BatteryStorageInfo;
 import com.battre.stubs.services.BatteryTypeTierCount;
-import com.battre.stubs.services.LabSvcGrpc;
 import com.battre.stubs.services.ProcessIntakeBatteryOrderRequest;
 import com.battre.stubs.services.ProcessLabBatteriesRequest;
 import com.battre.stubs.services.ProcessLabBatteriesResponse;
-import com.battre.stubs.services.StorageSvcGrpc;
 import com.battre.stubs.services.StoreBatteryRequest;
 import com.battre.stubs.services.StoreBatteryResponse;
 import io.grpc.stub.StreamObserver;
-import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -33,34 +31,35 @@ public class OpsSvc {
     private static final Logger logger = Logger.getLogger(OpsSvc.class.getName());
     private final BatteryInventoryRepository batInvRepo;
     private final OrderRecordsRepository ordRecRepo;
-    @GrpcClient("storageSvc")
-    private StorageSvcGrpc.StorageSvcStub storageSvcClient;
-    @GrpcClient("labSvc")
-    private LabSvcGrpc.LabSvcStub labSvcClient;
+    private final GrpcMethodInvoker grpcMethodInvoker;
 
     @Autowired
     public OpsSvc(BatteryInventoryRepository batInvRepo,
-                  OrderRecordsRepository ordRecRepo
+                  OrderRecordsRepository ordRecRepo,
+                  GrpcMethodInvoker grpcMethodInvoker
     ) {
         this.batInvRepo = batInvRepo;
         this.ordRecRepo = ordRecRepo;
+        this.grpcMethodInvoker = grpcMethodInvoker;
     }
 
-    public void setStorageSvcClient(StorageSvcGrpc.StorageSvcStub storageSvcClient){
-        this.storageSvcClient = storageSvcClient;
-    }
-
-    public void setLabSvcClient(LabSvcGrpc.LabSvcStub labSvcClient){
-        this.labSvcClient = labSvcClient;
+    public static List<BatteryIdType> convertToProcessLabBatteriesList(List<Object[]> batteryIdTypeIdList) {
+        return batteryIdTypeIdList.stream()
+                .map(batteryIdTypeId -> BatteryIdType.newBuilder()
+                        .setBatteryId((Integer) batteryIdTypeId[0])
+                        .setBatteryTypeId((Integer) batteryIdTypeId[1])
+                        .build())
+                .collect(Collectors.toList());
     }
 
     public boolean attemptStoreBatteries(int orderId, List<BatteryTypeTierCount> batteryList) {
         //creates the battery entries in the battery inventory table and assembles a list for storage service
         List<BatteryStorageInfo> batteryStorageList = createNewBatteryStorageList(orderId, batteryList);
 
-        StoreBatteryRequest.Builder StoreBatteryRequestBuilder = StoreBatteryRequest.newBuilder();
-        StoreBatteryRequestBuilder.setOrderId(orderId);
-        StoreBatteryRequestBuilder.addAllBatteries(batteryStorageList);
+        StoreBatteryRequest request = StoreBatteryRequest.newBuilder()
+                .setOrderId(orderId)
+                .addAllBatteries(batteryStorageList)
+                .build();
 
         CompletableFuture<StoreBatteryResponse> responseFuture = new CompletableFuture<>();
         StreamObserver<StoreBatteryResponse> responseObserver = new StreamObserver<>() {
@@ -81,7 +80,12 @@ public class OpsSvc {
             }
         };
 
-        storageSvcClient.tryStoreBatteries(StoreBatteryRequestBuilder.build(), responseObserver);
+        grpcMethodInvoker.callMethod(
+                "storagesvc",
+                "tryStoreBatteries",
+                request,
+                responseObserver
+        );
 
         boolean tryStoreBatteriesSuccess = false;
         try {
@@ -98,7 +102,7 @@ public class OpsSvc {
         // Store battery status => Storage / Rejected
         batInvRepo.setBatteryStatusesForIntakeOrder(
                 orderId,
-                tryStoreBatteriesSuccess ?  BatteryStatus.STORAGE.toString() : BatteryStatus.REJECTED.toString()
+                tryStoreBatteriesSuccess ? BatteryStatus.STORAGE.toString() : BatteryStatus.REJECTED.toString()
         );
 
         return tryStoreBatteriesSuccess;
@@ -108,8 +112,9 @@ public class OpsSvc {
         List<Object[]> batteryIdTypeIdList = batInvRepo.getBatteryIdTypeIdsForIntakeOrder(orderId);
         List<BatteryIdType> processLabBatteriesList = convertToProcessLabBatteriesList(batteryIdTypeIdList);
 
-        ProcessLabBatteriesRequest.Builder ProcessLabBatteriesRequestBuilder = ProcessLabBatteriesRequest.newBuilder();
-        ProcessLabBatteriesRequestBuilder.addAllBatteryIdTypes(processLabBatteriesList);
+        ProcessLabBatteriesRequest request = ProcessLabBatteriesRequest.newBuilder()
+                .addAllBatteryIdTypes(processLabBatteriesList)
+                .build();
 
         CompletableFuture<ProcessLabBatteriesResponse> responseFuture = new CompletableFuture<>();
         StreamObserver<ProcessLabBatteriesResponse> responseObserver = new StreamObserver<>() {
@@ -130,7 +135,12 @@ public class OpsSvc {
             }
         };
 
-        labSvcClient.processLabBatteries(ProcessLabBatteriesRequestBuilder.build(), responseObserver);
+        grpcMethodInvoker.callMethod(
+                "labsvc",
+                "processLabBatteries",
+                request,
+                responseObserver
+        );
 
         boolean addBatteriesToLabBacklogSuccess = false;
         try {
@@ -214,15 +224,4 @@ public class OpsSvc {
         logger.info("Creating: " + batteryInventoryEntry);
         return batInvRepo.save(batteryInventoryEntry);
     }
-
-    public static List<BatteryIdType> convertToProcessLabBatteriesList(List<Object[]> batteryIdTypeIdList) {
-        return batteryIdTypeIdList.stream()
-                .map(batteryIdTypeId -> BatteryIdType.newBuilder()
-                        .setBatteryId((Integer) batteryIdTypeId[0])
-                        .setBatteryTypeId((Integer) batteryIdTypeId[1])
-                        .build())
-                .collect(Collectors.toList());
-    }
-
-
 }

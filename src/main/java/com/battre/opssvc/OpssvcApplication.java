@@ -3,10 +3,12 @@ package com.battre.opssvc;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.annotation.Bean;
 
 import java.util.Map;
 
+@EnableDiscoveryClient
 @SpringBootApplication
 public class OpssvcApplication {
 

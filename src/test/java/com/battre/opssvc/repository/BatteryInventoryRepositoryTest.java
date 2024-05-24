@@ -1,7 +1,6 @@
 package com.battre.opssvc.repository;
 
 import com.battre.opssvc.enums.BatteryStatus;
-import com.battre.opssvc.service.OpsSvc;
 import com.battre.stubs.services.BatteryIdType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -10,6 +10,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(SpringExtension.class)
 @DataJpaTest
@@ -34,12 +36,12 @@ public class OrderRecordsRepositoryTest {
         boolean completedTrue = ordRecRepo.getOrderCompleted(4);
 
         // Verify the result
-        assertEquals(true, completedTrue);
+        assertTrue(completedTrue);
 
         boolean completedFalse = ordRecRepo.getOrderCompleted(2);
 
         // Verify the result
-        assertEquals(false, completedFalse);
+        assertFalse(completedFalse);
     }
 
     @Test
@@ -49,6 +51,6 @@ public class OrderRecordsRepositoryTest {
 
         // Verify the result
         boolean isCompleted = ordRecRepo.getOrderCompleted(3);
-        assertEquals(true, isCompleted);
+        assertTrue(isCompleted);
     }
 }

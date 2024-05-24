@@ -1,7 +1,8 @@
-package com.battre.opssvc.service;
+package com.battre.opssvc.controller;
 
 import com.battre.opssvc.enums.BatteryStatus;
 import com.battre.opssvc.model.OrderRecordType;
+import com.battre.opssvc.service.OpsSvc;
 import com.battre.stubs.services.OpsSvcGrpc;
 import com.battre.stubs.services.ProcessIntakeBatteryOrderRequest;
 import com.battre.stubs.services.ProcessIntakeBatteryOrderResponse;
@@ -16,13 +17,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.logging.Logger;
 
 @GrpcService
-public class OpsSvcImpl extends OpsSvcGrpc.OpsSvcImplBase {
-    private static final Logger logger = Logger.getLogger(OpsSvcImpl.class.getName());
+public class OpsSvcController extends OpsSvcGrpc.OpsSvcImplBase {
+    private static final Logger logger = Logger.getLogger(OpsSvcController.class.getName());
 
     private final OpsSvc opsSvc;
 
     @Autowired
-    public OpsSvcImpl(OpsSvc opsSvc) {
+    public OpsSvcController(OpsSvc opsSvc) {
         this.opsSvc = opsSvc;
     }
 
@@ -50,12 +51,12 @@ public class OpsSvcImpl extends OpsSvcGrpc.OpsSvcImplBase {
 
     @Override
     public void updateBatteryStatus(UpdateBatteryStatusRequest request, StreamObserver<UpdateBatteryStatusResponse> responseObserver) {
-        int batteryId = request.getBatteries().getBatteryId();
-        String batteryStatus = request.getBatteries().getBatteryStatus().toString();
+        int batteryId = request.getBattery().getBatteryId();
+        String batteryStatus = request.getBattery().getBatteryStatus().toString();
         logger.info("updateBatteryStatus() invoked for [" + batteryId + "] and status [" + batteryStatus + "]");
 
         boolean updateBatteryStatusSuccess = false;
-        switch(batteryStatus) {
+        switch (batteryStatus) {
             case "UNKNOWN":
             case "INTAKE":
             case "REJECTED":
