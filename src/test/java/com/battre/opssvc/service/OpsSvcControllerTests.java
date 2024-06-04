@@ -93,4 +93,44 @@ public class OpsSvcControllerTests {
         verify(responseProcessIntakeBatteryOrderResponse).onCompleted();
 
     }
+
+    @Test
+    void testUpdateBatteryStatus() {
+        // TODO: Implement test
+    }
+
+    @Test
+    void testGetCurrentBatteryInventory() {
+        // TODO: Implement test
+    }
+
+    @Test
+    void testGetBatteryInventory() {
+        // TODO: Implement test
+    }
+
+    @Test
+    void testDestroyBattery() {
+        // TODO: Implement test
+    }
+
+    @Test
+    void testGetCustomerList() {
+        // TODO: Implement test
+    }
+
+    @Test
+    void testAddCustomer() {
+        // TODO: Implement test
+    }
+
+    @Test
+    void testRemoveCustomer() {
+        // TODO: Implement test
+    }
+
+    @Test
+    void testUpdateCustomer() {
+        // TODO: Implement test
+    }
 }

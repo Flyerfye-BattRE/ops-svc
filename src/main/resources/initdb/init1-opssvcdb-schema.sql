@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS OpsSvcSchema.BatteryStatus (
 
 CREATE TABLE IF NOT EXISTS OpsSvcSchema.CustomerData (
   customer_id SERIAL PRIMARY KEY,
-  contact_name VARCHAR(45) NOT NULL,
+  last_name VARCHAR(45) NOT NULL,
+  first_name VARCHAR(45) NOT NULL,
   email VARCHAR(45) NOT NULL,
   phone VARCHAR(20) NOT NULL,
   address VARCHAR(45) NOT NULL,
@@ -45,9 +46,9 @@ CREATE TABLE IF NOT EXISTS OpsSvcSchema.OrderRecords (
   shipping_plan_id INT,
   completed BOOLEAN DEFAULT FALSE,
   notes VARCHAR(45),
-  CONSTRAINT order_type_id FOREIGN KEY (order_type_id) REFERENCES OpsSvcSchema.OrderTypes(order_type_id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT order_sector_id FOREIGN KEY (order_sector_id) REFERENCES OpsSvcSchema.OrderSectors(order_sector_id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT customer_id FOREIGN KEY (customer_id) REFERENCES OpsSvcSchema.CustomerData(customer_id) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT order_type_id_fk FOREIGN KEY (order_type_id) REFERENCES OrderTypes(order_type_id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT order_sector_id_fk FOREIGN KEY (order_sector_id) REFERENCES OrderSectors(order_sector_id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT customer_id_fk FOREIGN KEY (customer_id) REFERENCES CustomerData(customer_id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
 CREATE TABLE IF NOT EXISTS OpsSvcSchema.BatteryInventory (
@@ -57,8 +58,8 @@ CREATE TABLE IF NOT EXISTS OpsSvcSchema.BatteryInventory (
   intake_order_id INT NOT NULL,
   hold_id INT,
   output_order_id INT,
-  CONSTRAINT battery_status_id FOREIGN KEY (battery_status_id) REFERENCES OpsSvcSchema.BatteryStatus(battery_status_id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT intake_order_id FOREIGN KEY (intake_order_id) REFERENCES OpsSvcSchema.OrderRecords(order_id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT output_order_id FOREIGN KEY (output_order_id) REFERENCES OpsSvcSchema.OrderRecords(order_id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT hold_id FOREIGN KEY (hold_id) REFERENCES OpsSvcSchema.HoldRecords(hold_id) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT battery_status_id_fk FOREIGN KEY (battery_status_id) REFERENCES BatteryStatus(battery_status_id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT intake_order_id_fk FOREIGN KEY (intake_order_id) REFERENCES OrderRecords(order_id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT output_order_id_fk FOREIGN KEY (output_order_id) REFERENCES OrderRecords(order_id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT hold_id_fk FOREIGN KEY (hold_id) REFERENCES HoldRecords(hold_id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );

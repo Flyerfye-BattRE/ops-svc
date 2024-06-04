@@ -4,6 +4,8 @@ import com.battre.grpcifc.GrpcMethodInvoker;
 import com.battre.opssvc.model.BatteryInventoryType;
 import com.battre.opssvc.model.OrderRecordType;
 import com.battre.opssvc.repository.BatteryInventoryRepository;
+import com.battre.opssvc.repository.BatteryStatusRepository;
+import com.battre.opssvc.repository.CustomerDataRepository;
 import com.battre.opssvc.repository.OrderRecordsRepository;
 import com.battre.stubs.services.BatteryIdType;
 import com.battre.stubs.services.BatteryTypeTierCount;
@@ -37,6 +39,10 @@ import static org.mockito.Mockito.verify;
 class OpsSvcTests {
     @Mock
     private BatteryInventoryRepository batInvRepo;
+    @Mock
+    private BatteryStatusRepository batStatusRepo;
+    @Mock
+    private CustomerDataRepository customerDataRepo;
     @Mock
     private OrderRecordsRepository ordRecRepo;
     @Mock
@@ -78,7 +84,7 @@ class OpsSvcTests {
     @BeforeEach
     public void openMocks() {
         closeable = MockitoAnnotations.openMocks(this);
-        opsSvc = new OpsSvc(batInvRepo, ordRecRepo, grpcMethodInvoker);
+        opsSvc = new OpsSvc(batInvRepo, batStatusRepo, customerDataRepo, ordRecRepo, grpcMethodInvoker);
     }
 
     @AfterEach
@@ -169,7 +175,6 @@ class OpsSvcTests {
         boolean result = opsSvc.attemptStoreBatteries(orderId, batteryList);
 
         assertFalse(result);
-        verify(ordRecRepo).setOrderCompleted(orderId);
         verify(batInvRepo).setBatteryStatusesForIntakeOrder(orderId, "REJECTED");
 
         // check the contents of battery inventory entry that was actually generated for saving
@@ -236,5 +241,45 @@ class OpsSvcTests {
                 any(StreamObserver.class)
         );
         assertEquals(processLabBatteriesList, captor.getValue().getBatteryIdTypesList());
+    }
+
+    @Test
+    void testUpdateBatteryStatus() {
+        // TODO: Implement test
+    }
+
+    @Test
+    void testDestroyBattery() {
+        // TODO: Implement test
+    }
+
+    @Test
+    void testGetCurrentBatteryInventory() {
+        // TODO: Implement test
+    }
+
+    @Test
+    void testGetBatteryInventory() {
+        // TODO: Implement test
+    }
+
+    @Test
+    void testGetCustomerList() {
+        // TODO: Implement test
+    }
+
+    @Test
+    void testAddCustomer() {
+        // TODO: Implement test
+    }
+
+    @Test
+    void testRemoveCustomer() {
+        // TODO: Implement test
+    }
+
+    @Test
+    void testUpdateCustomer() {
+        // TODO: Implement test
     }
 }

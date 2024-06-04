@@ -14,9 +14,10 @@ WHERE NOT EXISTS (
 -- Insert statements for the "OrderTypes" table
 INSERT INTO OpsSvcSchema.OrderTypes (order_type_id, order_type)
 SELECT * FROM (VALUES
-	(1, 'Intake'),
-	(2, 'Output'),
-	(3, 'Demo')
+	(0, 'UNKNOWN'),
+	(1, 'INTAKE'),
+	(2, 'OUTPUT'),
+	(3, 'DEMO')
 ) AS v (order_type_id, order_type)
 WHERE NOT EXISTS (
     SELECT 1 FROM OpsSvcSchema.OrderTypes
@@ -42,8 +43,8 @@ WHERE NOT EXISTS (
 );
 
 -- Insert statements for the "CustomerData" table
-INSERT INTO OpsSvcSchema.CustomerData (customer_id, contact_name, email, phone, address, loyalty_id)
-SELECT 1, 'Test Customer', 'customer@test.com', '(555)555-5555', '555 Test Place, City, State, USA', RANDOM_UUID()
+INSERT INTO OpsSvcSchema.CustomerData (customer_id, last_name, first_name, email, phone, address, loyalty_id)
+SELECT 1, 'Test', 'Customer', 'customer@test.com', '(555)555-5555', '555 Test Place, City, State, USA', RANDOM_UUID()
 WHERE NOT EXISTS (
     SELECT 1 FROM OpsSvcSchema.CustomerData
 );

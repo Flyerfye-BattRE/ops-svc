@@ -1,10 +1,14 @@
 package com.battre.opssvc.service;
 
 import com.battre.grpcifc.GrpcMethodInvoker;
-import com.battre.opssvc.enums.BatteryStatus;
+import com.battre.opssvc.enums.BatteryStatusEnum;
+import com.battre.opssvc.enums.OrderTypeEnum;
 import com.battre.opssvc.model.BatteryInventoryType;
+import com.battre.opssvc.model.CustomerDataType;
 import com.battre.opssvc.model.OrderRecordType;
 import com.battre.opssvc.repository.BatteryInventoryRepository;
+import com.battre.opssvc.repository.BatteryStatusRepository;
+import com.battre.opssvc.repository.CustomerDataRepository;
 import com.battre.opssvc.repository.OrderRecordsRepository;
 import com.battre.stubs.services.BatteryIdType;
 import com.battre.stubs.services.BatteryStorageInfo;
@@ -12,14 +16,20 @@ import com.battre.stubs.services.BatteryTypeTierCount;
 import com.battre.stubs.services.ProcessIntakeBatteryOrderRequest;
 import com.battre.stubs.services.ProcessLabBatteriesRequest;
 import com.battre.stubs.services.ProcessLabBatteriesResponse;
+import com.battre.stubs.services.RemoveLabBatteryRequest;
+import com.battre.stubs.services.RemoveLabBatteryResponse;
+import com.battre.stubs.services.RemoveStorageBatteryRequest;
+import com.battre.stubs.services.RemoveStorageBatteryResponse;
 import com.battre.stubs.services.StoreBatteryRequest;
 import com.battre.stubs.services.StoreBatteryResponse;
 import io.grpc.stub.StreamObserver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -30,15 +40,21 @@ import java.util.stream.Collectors;
 public class OpsSvc {
     private static final Logger logger = Logger.getLogger(OpsSvc.class.getName());
     private final BatteryInventoryRepository batInvRepo;
+    private final BatteryStatusRepository batStatusRepo;
+    private final CustomerDataRepository customerDataRepo;
     private final OrderRecordsRepository ordRecRepo;
     private final GrpcMethodInvoker grpcMethodInvoker;
 
     @Autowired
     public OpsSvc(BatteryInventoryRepository batInvRepo,
+                  BatteryStatusRepository batStatusRepo,
+                  CustomerDataRepository customerDataRepo,
                   OrderRecordsRepository ordRecRepo,
                   GrpcMethodInvoker grpcMethodInvoker
     ) {
         this.batInvRepo = batInvRepo;
+        this.batStatusRepo = batStatusRepo;
+        this.customerDataRepo = customerDataRepo;
         this.ordRecRepo = ordRecRepo;
         this.grpcMethodInvoker = grpcMethodInvoker;
     }
@@ -72,6 +88,7 @@ public class OpsSvc {
             public void onError(Throwable t) {
                 // Handle any errors
                 logger.severe("tryStoreBatteries() errored: " + t.getMessage());
+                responseFuture.completeExceptionally(t);
             }
 
             @Override
@@ -92,18 +109,29 @@ public class OpsSvc {
             // Blocks until the response is available
             tryStoreBatteriesSuccess = responseFuture.get(5, TimeUnit.SECONDS).getSuccess();
             logger.info("tryStoreBatteries() responseFuture response: " + tryStoreBatteriesSuccess);
+
+            if (tryStoreBatteriesSuccess) {
+                // Order completed => True
+                ordRecRepo.setOrderCompleted(orderId);
+
+                // Store battery status => Storage
+                batInvRepo.setBatteryStatusesForIntakeOrder(
+                        orderId,
+                        BatteryStatusEnum.STORAGE.toString()
+                );
+            } else {
+                logger.severe("Order could not be marked as completed: " + orderId);
+
+                // Store battery status => Rejected
+                batInvRepo.setBatteryStatusesForIntakeOrder(
+                        orderId,
+                        BatteryStatusEnum.REJECTED.toString()
+                );
+            }
+
         } catch (Exception e) {
             logger.severe("tryStoreBatteries() responseFuture error: " + e.getMessage());
         }
-
-        // Order completed => True
-        ordRecRepo.setOrderCompleted(orderId);
-
-        // Store battery status => Storage / Rejected
-        batInvRepo.setBatteryStatusesForIntakeOrder(
-                orderId,
-                tryStoreBatteriesSuccess ? BatteryStatus.STORAGE.toString() : BatteryStatus.REJECTED.toString()
-        );
 
         return tryStoreBatteriesSuccess;
     }
@@ -127,6 +155,7 @@ public class OpsSvc {
             public void onError(Throwable t) {
                 // Handle any errors
                 logger.severe("processLabBatteries() errored: " + t.getMessage());
+                responseFuture.completeExceptionally(t);
             }
 
             @Override
@@ -147,6 +176,16 @@ public class OpsSvc {
             // Blocks until the response is available
             addBatteriesToLabBacklogSuccess = responseFuture.get(5, TimeUnit.SECONDS).getSuccess();
             logger.info("addBatteriesToLabBacklog() responseFuture response: " + addBatteriesToLabBacklogSuccess);
+
+            if (addBatteriesToLabBacklogSuccess) {
+                // Store battery status => Testing
+                batInvRepo.setBatteryStatusesForIntakeOrder(
+                        orderId,
+                        BatteryStatusEnum.TESTING.toString()
+                );
+            } else {
+                logger.severe("Order could not be marked as testing: " + orderId);
+            }
         } catch (Exception e) {
             logger.severe("addBatteriesToLabBacklog() responseFuture error: " + e.getMessage());
         }
@@ -154,8 +193,10 @@ public class OpsSvc {
         return addBatteriesToLabBacklogSuccess;
     }
 
-    public boolean updateBatteryStatus(int batteryId, BatteryStatus batteryStatus) {
-        batInvRepo.setBatteryStatusesForIntakeOrder(batteryId, batteryStatus.toString());
+    @Transactional
+    public boolean updateBatteryStatus(int batteryId, BatteryStatusEnum batteryStatusEnum) {
+        batInvRepo.setBatteryStatusesForIntakeOrder(batteryId, batteryStatusEnum.toString());
+
         return true;
     }
 
@@ -163,7 +204,7 @@ public class OpsSvc {
         Random random = new Random();
 
         // Create new order entry
-        int orderTypeId = 1; //Always 1 which corresponds to 'intake'
+        int orderTypeId = OrderTypeEnum.INTAKE.getStatusCode();
         int orderSectorId = random.nextInt(5) + 1; //Randomly select one of the available sectors
         int customerId = random.nextInt(2) + 1; //Randomly select one of the available customers
         boolean completed = false;
@@ -194,7 +235,7 @@ public class OpsSvc {
         // Create new batteries
         for (BatteryTypeTierCount batteryTypeTierCount : batteryList) {
             for (int i = 0; i < batteryTypeTierCount.getBatteryCount(); i++) {
-                BatteryInventoryType newBattery = createNewBattery(orderId, batteryTypeTierCount.getBatteryType());
+                BatteryInventoryType newBattery = createNewBatteryEntry(orderId, batteryTypeTierCount.getBatteryType());
                 batteryStorageList.add(
                         BatteryStorageInfo.newBuilder()
                                 .setBatteryId(newBattery.getBatteryId())
@@ -209,9 +250,9 @@ public class OpsSvc {
         return batteryStorageList;
     }
 
-    public BatteryInventoryType createNewBattery(int orderId, int typeId) {
+    private BatteryInventoryType createNewBatteryEntry(int orderId, int typeId) {
         // Create new battery entry
-        int batteryStatusId = 1; //Always 1 which corresponds to 'intake'
+        int batteryStatusId = BatteryStatusEnum.INTAKE.getStatusCode();
         int intakeOrderId = orderId;
         int batteryTypeId = typeId;
 
@@ -223,5 +264,182 @@ public class OpsSvc {
 
         logger.info("Creating: " + batteryInventoryEntry);
         return batInvRepo.save(batteryInventoryEntry);
+    }
+
+    @Transactional
+    public boolean destroyBattery(Integer batteryId) {
+        // check if battery is present in inventory before deleting
+        Optional<BatteryInventoryType> optionalBattery = batInvRepo.findById(batteryId);
+        if (optionalBattery.isPresent() &&
+                (
+                        // if the battery is still physically in the factory
+                        optionalBattery.get().getBatteryStatusId() == BatteryStatusEnum.INTAKE.getStatusCode() ||
+                                optionalBattery.get().getBatteryStatusId() == BatteryStatusEnum.TESTING.getStatusCode() ||
+                                optionalBattery.get().getBatteryStatusId() == BatteryStatusEnum.REFURB.getStatusCode() ||
+                                optionalBattery.get().getBatteryStatusId() == BatteryStatusEnum.STORAGE.getStatusCode() ||
+                                optionalBattery.get().getBatteryStatusId() == BatteryStatusEnum.HOLD.getStatusCode()
+                )
+        ) {
+            BatteryInventoryType existingBattery = optionalBattery.get();
+            int batId = existingBattery.getBatteryId();
+
+            boolean labSvcSuccess = true;
+            // if battery is being processed in the lab, remove it
+            if (existingBattery.getBatteryStatusId() == BatteryStatusEnum.TESTING.getStatusCode() ||
+                    existingBattery.getBatteryStatusId() == BatteryStatusEnum.REFURB.getStatusCode()) {
+                //labSvc.removeBattery
+                labSvcSuccess = removeBatteryFromLab(batId);
+                if (labSvcSuccess) {
+                    logger.info("Battery " + batId + " successfully removed from lab.");
+                } else {
+                    logger.severe("Battery " + batId + " NOT successfully removed from lab.");
+                }
+            }
+
+            // remove battery from storage
+            boolean storageSvcSuccess = removeBatteryFromStorage(batId);
+            if (storageSvcSuccess) {
+                logger.info("Battery " + batId + " successfully removed from storage.");
+            } else {
+                logger.severe("Battery " + batId + " NOT successfully removed from storage.");
+            }
+
+            // TODO: Check/Update ShippingSvc in the future, if necessary
+
+            existingBattery.setHoldId(null);
+            existingBattery.setBatteryStatusId(BatteryStatusEnum.DESTROYED.getStatusCode());
+            batInvRepo.save(existingBattery);
+
+            return storageSvcSuccess && labSvcSuccess;
+        } else {
+            return false;
+        }
+    }
+
+    protected boolean removeBatteryFromStorage(int batteryId) {
+        RemoveStorageBatteryRequest request = RemoveStorageBatteryRequest.newBuilder()
+                .setBatteryId(batteryId)
+                .build();
+
+        CompletableFuture<RemoveStorageBatteryResponse> responseFuture = new CompletableFuture<>();
+        StreamObserver<RemoveStorageBatteryResponse> responseObserver = new StreamObserver<>() {
+            @Override
+            public void onNext(RemoveStorageBatteryResponse response) {
+                responseFuture.complete(response);
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                // Handle any errors
+                logger.severe("removeBatteryFromStorage() errored: " + t.getMessage());
+                responseFuture.completeExceptionally(t);
+            }
+
+            @Override
+            public void onCompleted() {
+                logger.info("removeBatteryFromStorage() completed");
+            }
+        };
+
+        grpcMethodInvoker.callMethod(
+                "storagesvc",
+                "removeStorageBattery",
+                request,
+                responseObserver
+        );
+
+        boolean removeBatterySuccess = false;
+        try {
+            // Blocks until the response is available
+            removeBatterySuccess = responseFuture.get(5, TimeUnit.SECONDS).getSuccess();
+            logger.info("removeBatteryFromStorage() responseFuture response: " + removeBatterySuccess);
+        } catch (Exception e) {
+            logger.severe("removeBatteryFromStorage() responseFuture error: " + e.getMessage());
+        }
+
+        return removeBatterySuccess;
+    }
+
+    protected boolean removeBatteryFromLab(int batteryId) {
+        RemoveLabBatteryRequest request = RemoveLabBatteryRequest.newBuilder()
+                .setBatteryId(batteryId)
+                .build();
+
+        CompletableFuture<RemoveLabBatteryResponse> responseFuture = new CompletableFuture<>();
+        StreamObserver<RemoveLabBatteryResponse> responseObserver = new StreamObserver<>() {
+            @Override
+            public void onNext(RemoveLabBatteryResponse response) {
+                responseFuture.complete(response);
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                // Handle any errors
+                logger.severe("removeBatteryFromLab() errored: " + t.getMessage());
+                responseFuture.completeExceptionally(t);
+            }
+
+            @Override
+            public void onCompleted() {
+                logger.info("removeBatteryFromLab() completed");
+            }
+        };
+
+        grpcMethodInvoker.callMethod(
+                "labsvc",
+                "removeLabBattery",
+                request,
+                responseObserver
+        );
+
+        boolean removeBatterySuccess = false;
+        try {
+            // Blocks until the response is available
+            removeBatterySuccess = responseFuture.get(5, TimeUnit.SECONDS).getSuccess();
+            logger.info("removeBatteryFromLab() responseFuture response: " + removeBatterySuccess);
+        } catch (Exception e) {
+            logger.severe("removeBatteryFromLab() responseFuture error: " + e.getMessage());
+        }
+
+        return removeBatterySuccess;
+    }
+
+    public List<BatteryInventoryType> getCurrentBatteryInventory() {
+        return batInvRepo.getCurrentBatteryInventory();
+    }
+
+    public List<BatteryInventoryType> getBatteryInventory() {
+        return batInvRepo.getBatteryInventory();
+    }
+
+    @Transactional
+    public List<CustomerDataType> getCustomerList() {
+        return customerDataRepo.getCustomerList();
+    }
+
+    @Transactional
+    public boolean addCustomer(CustomerDataType customerData) {
+        customerDataRepo.save(customerData);
+
+        return true;
+    }
+
+    @Transactional
+    public boolean removeCustomer(Integer customerId) {
+        customerDataRepo.deleteById(customerId);
+
+        return true;
+    }
+
+    @Transactional
+    public boolean updateCustomer(Integer customerId, CustomerDataType newCustomerData) {
+        Optional<CustomerDataType> optionalCustomer = customerDataRepo.findById(customerId);
+        if (optionalCustomer.isPresent()) {
+            customerDataRepo.save(newCustomerData);
+
+            return true;
+        } else {
+            throw new RuntimeException("Customer not found with ID: " + customerId);
+        }
     }
 }

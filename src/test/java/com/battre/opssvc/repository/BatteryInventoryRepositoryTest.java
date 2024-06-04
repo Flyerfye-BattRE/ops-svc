@@ -1,6 +1,6 @@
 package com.battre.opssvc.repository;
 
-import com.battre.opssvc.enums.BatteryStatus;
+import com.battre.opssvc.enums.BatteryStatusEnum;
 import com.battre.stubs.services.BatteryIdType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,19 +38,19 @@ public class BatteryInventoryRepositoryTest {
         // Verify the result
         List<String> statuses = batInvRepo.getBatteryStatusesForIntakeOrder(1);
         assertEquals(1, statuses.size());
-        assertEquals(BatteryStatus.TESTING.toString(),
+        assertEquals(BatteryStatusEnum.TESTING.toString(),
                 batInvRepo.getBatteryStatusesForIntakeOrder(1).get(0));
     }
 
     @Test
     @Sql(scripts = {"/testdb/test-bir-populateOrderRecords.sql", "/testdb/test-bir-populateBatteryInventory.sql"})
     public void testSetBatteryStatusesForIntakeOrder() {
-        batInvRepo.setBatteryStatusesForIntakeOrder(2, BatteryStatus.STORAGE.toString());
+        batInvRepo.setBatteryStatusesForIntakeOrder(2, BatteryStatusEnum.STORAGE.toString());
 
         // Verify the result
         List<String> statuses = batInvRepo.getBatteryStatusesForIntakeOrder(2);
         assertEquals(1, statuses.size());
-        assertEquals(BatteryStatus.STORAGE.toString(),
+        assertEquals(BatteryStatusEnum.STORAGE.toString(),
                 statuses.get(0));
     }
 
@@ -70,5 +70,15 @@ public class BatteryInventoryRepositoryTest {
         assertEquals(6, batteryIdTypeIdList.get(1).getBatteryTypeId());
         assertEquals(3, batteryIdTypeIdList.get(2).getBatteryId());
         assertEquals(8, batteryIdTypeIdList.get(2).getBatteryTypeId());
+    }
+
+    @Test
+    public void testGetCurrentBatteryInventory() {
+        // TODO: Implement test
+    }
+
+    @Test
+    public void testGetBatteryInventory() {
+        // TODO: Implement test
     }
 }

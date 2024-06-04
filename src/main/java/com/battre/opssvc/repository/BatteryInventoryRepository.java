@@ -51,4 +51,16 @@ public interface BatteryInventoryRepository extends JpaRepository<BatteryInvento
             "WHERE intakeOrderId = :orderId " +
             "GROUP BY batteryId, batteryTypeId")
     List<Object[]> getBatteryIdTypeIdsForIntakeOrder(@Param("orderId") int orderId);
+
+    @Query("SELECT bit " +
+            "FROM BatteryInventoryType AS bit " +
+            "WHERE bit.intakeOrderId <= 6 " +
+            "ORDER BY batteryId")
+    List<BatteryInventoryType> getCurrentBatteryInventory();
+
+    @Query("SELECT bit " +
+            "FROM BatteryInventoryType AS bit " +
+            "ORDER BY batteryId " +
+            "LIMIT 1000")
+    List<BatteryInventoryType> getBatteryInventory();
 }

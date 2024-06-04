@@ -1,19 +1,37 @@
 package com.battre.opssvc.controller;
 
-import com.battre.opssvc.enums.BatteryStatus;
+import com.battre.opssvc.enums.BatteryStatusEnum;
+import com.battre.opssvc.model.BatteryInventoryType;
+import com.battre.opssvc.model.CustomerDataType;
 import com.battre.opssvc.model.OrderRecordType;
 import com.battre.opssvc.service.OpsSvc;
+import com.battre.stubs.services.AddCustomerRequest;
+import com.battre.stubs.services.AddCustomerResponse;
+import com.battre.stubs.services.Battery;
+import com.battre.stubs.services.Customer;
+import com.battre.stubs.services.DestroyBatteryRequest;
+import com.battre.stubs.services.DestroyBatteryResponse;
+import com.battre.stubs.services.GetBatteryInventoryRequest;
+import com.battre.stubs.services.GetBatteryInventoryResponse;
+import com.battre.stubs.services.GetCustomerListRequest;
+import com.battre.stubs.services.GetCustomerListResponse;
 import com.battre.stubs.services.OpsSvcGrpc;
 import com.battre.stubs.services.ProcessIntakeBatteryOrderRequest;
 import com.battre.stubs.services.ProcessIntakeBatteryOrderResponse;
+import com.battre.stubs.services.RemoveCustomerRequest;
+import com.battre.stubs.services.RemoveCustomerResponse;
 import com.battre.stubs.services.UpdateBatteriesStatusesRequest;
 import com.battre.stubs.services.UpdateBatteriesStatusesResponse;
 import com.battre.stubs.services.UpdateBatteryStatusRequest;
 import com.battre.stubs.services.UpdateBatteryStatusResponse;
+import com.battre.stubs.services.UpdateCustomerRequest;
+import com.battre.stubs.services.UpdateCustomerResponse;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.List;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 @GrpcService
@@ -29,24 +47,29 @@ public class OpsSvcController extends OpsSvcGrpc.OpsSvcImplBase {
 
     @Override
     public void processIntakeBatteryOrder(ProcessIntakeBatteryOrderRequest request, StreamObserver<ProcessIntakeBatteryOrderResponse> responseObserver) {
-        logger.info("processIntakeBatteryOrder() invoked");
-        OrderRecordType savedOrderRecord = opsSvc.createNewOrderRecord(request);
+        try {
+            logger.info("processIntakeBatteryOrder() invoked");
+            OrderRecordType savedOrderRecord = opsSvc.createNewOrderRecord(request);
 
-        boolean storeBatteriesSuccess = opsSvc.attemptStoreBatteries(savedOrderRecord.getOrderId(), request.getBatteriesList());
+            boolean storeBatteriesSuccess = opsSvc.attemptStoreBatteries(savedOrderRecord.getOrderId(), request.getBatteriesList());
 
-        boolean addBatteriesToLabBacklogSuccess = false;
-        if (storeBatteriesSuccess) {
-            addBatteriesToLabBacklogSuccess = opsSvc.addBatteriesToLabBacklog(savedOrderRecord.getOrderId());
+            boolean addBatteriesToLabBacklogSuccess = false;
+            if (storeBatteriesSuccess) {
+                addBatteriesToLabBacklogSuccess = opsSvc.addBatteriesToLabBacklog(savedOrderRecord.getOrderId());
+            }
+
+            ProcessIntakeBatteryOrderResponse response = ProcessIntakeBatteryOrderResponse.newBuilder()
+                    .setSuccess(addBatteriesToLabBacklogSuccess)
+                    .build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+            logger.info("processIntakeBatteryOrder() finished");
+        } catch (Exception e) {
+            logger.severe("processIntakeBatteryOrder() failed: " + e.getMessage());
+            responseObserver.onError(e);
         }
-
-        ProcessIntakeBatteryOrderResponse response = ProcessIntakeBatteryOrderResponse.newBuilder()
-                .setSuccess(addBatteriesToLabBacklogSuccess)
-                .build();
-
-        responseObserver.onNext(response);
-        responseObserver.onCompleted();
-
-        logger.info("processIntakeBatteryOrder() finished");
     }
 
     @Override
@@ -55,38 +78,247 @@ public class OpsSvcController extends OpsSvcGrpc.OpsSvcImplBase {
         String batteryStatus = request.getBattery().getBatteryStatus().toString();
         logger.info("updateBatteryStatus() invoked for [" + batteryId + "] and status [" + batteryStatus + "]");
 
-        boolean updateBatteryStatusSuccess = false;
-        switch (batteryStatus) {
-            case "UNKNOWN":
-            case "INTAKE":
-            case "REJECTED":
-            case "TESTING":
-            case "REFURB":
-            case "STORAGE":
-            case "HOLD":
-            case "SHIPPING":
-            case "RECEIVED":
-            case "DESTROYED":
-            case "LOST":
-                updateBatteryStatusSuccess = opsSvc.updateBatteryStatus(batteryId, BatteryStatus.valueOf(batteryStatus));
-                break;
-            default:
-                logger.severe("This battery status [" + batteryStatus + "] is currently not implemented");
-                break;
+        try {
+            boolean updateBatteryStatusSuccess = false;
+            switch (batteryStatus) {
+                case "UNKNOWN":
+                case "INTAKE":
+                case "REJECTED":
+                case "TESTING":
+                case "REFURB":
+                case "STORAGE":
+                case "HOLD":
+                case "SHIPPING":
+                case "RECEIVED":
+                case "DESTROYED":
+                case "LOST":
+                    updateBatteryStatusSuccess = opsSvc.updateBatteryStatus(batteryId, BatteryStatusEnum.valueOf(batteryStatus));
+                    break;
+                default:
+                    logger.severe("This battery status [" + batteryStatus + "] is currently not implemented");
+                    break;
+            }
+
+            UpdateBatteryStatusResponse response = UpdateBatteryStatusResponse.newBuilder()
+                    .setSuccess(updateBatteryStatusSuccess)
+                    .build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+            logger.info("updateBatteryStatus() finished");
+        } catch (Exception e) {
+            logger.severe("updateBatteryStatus() failed: " + e.getMessage());
+            responseObserver.onError(e);
         }
-
-        UpdateBatteryStatusResponse response = UpdateBatteryStatusResponse.newBuilder()
-                .setSuccess(updateBatteryStatusSuccess)
-                .build();
-
-        responseObserver.onNext(response);
-        responseObserver.onCompleted();
-
-        logger.info("updateBatteryStatus() finished");
     }
 
     @Override
     public void updateBatteriesStatuses(UpdateBatteriesStatusesRequest request, StreamObserver<UpdateBatteriesStatusesResponse> responseObserver) {
+        // TODO: Implement bulk battery status update fn
+    }
 
+    @Override
+    public void getCurrentBatteryInventory(
+            GetBatteryInventoryRequest request,
+            StreamObserver<GetBatteryInventoryResponse> responseObserver) {
+        logger.info("getCurrentBatteryInventory() started");
+
+        try {
+            GetBatteryInventoryResponse response = buildGetBatteryInventoryResponse(opsSvc.getCurrentBatteryInventory());
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+            logger.info("getCurrentBatteryInventory() completed");
+        } catch (Exception e) {
+            logger.severe("getCurrentBatteryInventory() failed: " + e.getMessage());
+            responseObserver.onError(e);
+        }
+    }
+
+    @Override
+    public void getBatteryInventory(
+            GetBatteryInventoryRequest request,
+            StreamObserver<GetBatteryInventoryResponse> responseObserver) {
+        logger.info("getBatteryInventory() started");
+
+        try {
+            GetBatteryInventoryResponse response = buildGetBatteryInventoryResponse(opsSvc.getBatteryInventory());
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+            logger.info("getBatteryInventory() completed");
+        } catch (Exception e) {
+            logger.severe("getBatteryInventory() failed: " + e.getMessage());
+            responseObserver.onError(e);
+        }
+    }
+
+    private GetBatteryInventoryResponse buildGetBatteryInventoryResponse(List<BatteryInventoryType> batteryInventory) {
+        GetBatteryInventoryResponse.Builder responseBuilder = GetBatteryInventoryResponse.newBuilder();
+        for (BatteryInventoryType battery : batteryInventory) {
+            BatteryStatusEnum status = BatteryStatusEnum.fromStatusCode(battery.getBatteryStatusId());
+
+            Battery.Builder batteryBuilder = Battery.newBuilder()
+                    .setBatteryId(battery.getBatteryId())
+                    .setBatteryStatus(status.getGrpcStatus())
+                    .setBatteryTypeId(battery.getBatteryTypeId())
+                    .setIntakeOrderId(battery.getIntakeOrderId())
+                    .setHoldId(battery.getHoldId())
+                    .setOutputOrderId(battery.getOutputOrderId());
+
+            responseBuilder.addBatteryList(batteryBuilder.build());
+        }
+
+        return responseBuilder.build();
+    }
+
+    @Override
+    public void destroyBattery(
+            DestroyBatteryRequest request,
+            StreamObserver<DestroyBatteryResponse> responseObserver) {
+        logger.info("destroyBattery() started");
+
+        try {
+            boolean success = opsSvc.destroyBattery(request.getBatteryId());
+
+            DestroyBatteryResponse response = DestroyBatteryResponse.newBuilder().setSuccess(success).build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+            logger.info("destroyBattery() completed");
+        } catch (Exception e) {
+            logger.severe("destroyBattery() failed: " + e.getMessage());
+            responseObserver.onError(e);
+        }
+    }
+
+    @Override
+    public void getCustomerList(
+            GetCustomerListRequest request,
+            StreamObserver<GetCustomerListResponse> responseObserver) {
+        logger.info("getCustomerList() started");
+
+        try {
+            List<CustomerDataType> customerList = opsSvc.getCustomerList();
+
+            GetCustomerListResponse response = buildGetCustomerListResponse(customerList);
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+            logger.info("getCustomerList() completed");
+        } catch (Exception e) {
+            logger.severe("getCustomerList() failed: " + e.getMessage());
+            responseObserver.onError(e);
+        }
+    }
+
+    private GetCustomerListResponse buildGetCustomerListResponse(List<CustomerDataType> customerList) {
+        GetCustomerListResponse.Builder responseBuilder = GetCustomerListResponse.newBuilder();
+        for (CustomerDataType customer : customerList) {
+            Customer.Builder customerBuilder = Customer.newBuilder()
+                    .setCustomerId(customer.getCustomerId())
+                    .setLastName(customer.getLastName())
+                    .setFirstName(customer.getFirstName())
+                    .setEmail(customer.getEmail())
+                    .setPhone(customer.getPhone())
+                    .setAddress(customer.getAddress())
+                    .setLoyaltyId(customer.getLoyaltyId().toString());
+
+            responseBuilder.addCustomerList(customerBuilder.build());
+        }
+
+        return responseBuilder.build();
+    }
+
+    // customerId ignored in request
+    @Override
+    public void addCustomer(
+            AddCustomerRequest request,
+            StreamObserver<AddCustomerResponse> responseObserver) {
+        logger.info("addCustomer() started");
+
+        try {
+            Customer grpcCustomer = request.getCustomer();
+            String newLoyaltyId = grpcCustomer.getLoyaltyId();
+            CustomerDataType customer = new CustomerDataType(
+                    grpcCustomer.getLastName(),
+                    grpcCustomer.getFirstName(),
+                    grpcCustomer.getEmail(),
+                    grpcCustomer.getPhone(),
+                    grpcCustomer.getAddress(),
+                    newLoyaltyId.isEmpty() ? UUID.randomUUID() : UUID.fromString(newLoyaltyId)
+            );
+
+            boolean success = opsSvc.addCustomer(customer);
+
+            AddCustomerResponse response = AddCustomerResponse.newBuilder().setSuccess(success).build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+            logger.info("addCustomer() completed");
+        } catch (Exception e) {
+            logger.severe("addCustomer() failed: " + e.getMessage());
+            responseObserver.onError(e);
+        }
+    }
+
+    @Override
+    public void removeCustomer(
+            RemoveCustomerRequest request,
+            StreamObserver<RemoveCustomerResponse> responseObserver) {
+        logger.info("removeCustomer() started");
+
+        try {
+            boolean success = opsSvc.removeCustomer(request.getCustomerId());
+
+            RemoveCustomerResponse response = RemoveCustomerResponse.newBuilder().setSuccess(success).build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+            logger.info("removeCustomer() completed");
+        } catch (Exception e) {
+            logger.severe("removeCustomer() failed: " + e.getMessage());
+            responseObserver.onError(e);
+        }
+    }
+
+    @Override
+    public void updateCustomer(
+            UpdateCustomerRequest request,
+            StreamObserver<UpdateCustomerResponse> responseObserver) {
+        logger.info("updateCustomer() started");
+
+        try {
+            Customer grpcCustomer = request.getCustomer();
+            String newLoyaltyId = grpcCustomer.getLoyaltyId();
+            CustomerDataType customer = new CustomerDataType(
+                    grpcCustomer.getCustomerId(),
+                    grpcCustomer.getLastName(),
+                    grpcCustomer.getFirstName(),
+                    grpcCustomer.getEmail(),
+                    grpcCustomer.getPhone(),
+                    grpcCustomer.getAddress(),
+                    newLoyaltyId.isEmpty() ? UUID.randomUUID() : UUID.fromString(newLoyaltyId)
+            );
+
+            boolean success = opsSvc.updateCustomer(grpcCustomer.getCustomerId(), customer);
+
+            UpdateCustomerResponse response = UpdateCustomerResponse.newBuilder().setSuccess(success).build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+            logger.info("updateCustomer() completed");
+        } catch (Exception e) {
+            logger.severe("updateCustomer() failed: " + e.getMessage());
+            responseObserver.onError(e);
+        }
     }
 }
