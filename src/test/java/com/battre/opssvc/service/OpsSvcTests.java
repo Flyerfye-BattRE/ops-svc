@@ -31,10 +31,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class OpsSvcTests {
     @Mock
@@ -54,31 +54,19 @@ class OpsSvcTests {
     private AutoCloseable closeable;
 
     public void mockTryStoreBatteries(StoreBatteryResponse response) {
-        doAnswer(invocation -> {
-            StreamObserver<StoreBatteryResponse> observer = invocation.getArgument(3);
-            observer.onNext(response);
-            observer.onCompleted();
-            return null;
-        }).when(grpcMethodInvoker).callMethod(
+        when(grpcMethodInvoker.invokeNonblock(
                 eq("storagesvc"),
                 eq("tryStoreBatteries"),
-                any(StoreBatteryRequest.class),
-                any(StreamObserver.class)
-        );
+                any(StoreBatteryRequest.class)
+        )).thenReturn(response);
     }
 
     public void mockProcessLabBatteries(ProcessLabBatteriesResponse response) {
-        doAnswer(invocation -> {
-            StreamObserver<ProcessLabBatteriesResponse> observer = invocation.getArgument(3);
-            observer.onNext(response);
-            observer.onCompleted();
-            return null;
-        }).when(grpcMethodInvoker).callMethod(
+        when(grpcMethodInvoker.invokeNonblock(
                 eq("labsvc"),
                 eq("processLabBatteries"),
-                any(ProcessLabBatteriesRequest.class),
-                any(StreamObserver.class)
-        );
+                any(ProcessLabBatteriesRequest.class)
+        )).thenReturn(response);
     }
 
     @BeforeEach
@@ -205,11 +193,10 @@ class OpsSvcTests {
         assertTrue(result);
         //verify the processLabBatteries grpc call
         ArgumentCaptor<ProcessLabBatteriesRequest> captor = ArgumentCaptor.forClass(ProcessLabBatteriesRequest.class);
-        verify(grpcMethodInvoker).callMethod(
+        verify(grpcMethodInvoker).invokeNonblock(
                 eq("labsvc"),
                 eq("processLabBatteries"),
-                captor.capture(),
-                any(StreamObserver.class)
+                captor.capture()
         );
         assertEquals(processLabBatteriesList, captor.getValue().getBatteryIdTypesList());
     }
@@ -234,11 +221,10 @@ class OpsSvcTests {
         assertFalse(result);
         //verify the processLabBatteries grpc call
         ArgumentCaptor<ProcessLabBatteriesRequest> captor = ArgumentCaptor.forClass(ProcessLabBatteriesRequest.class);
-        verify(grpcMethodInvoker).callMethod(
+        verify(grpcMethodInvoker).invokeNonblock(
                 eq("labsvc"),
                 eq("processLabBatteries"),
-                captor.capture(),
-                any(StreamObserver.class)
+                captor.capture()
         );
         assertEquals(processLabBatteriesList, captor.getValue().getBatteryIdTypesList());
     }

@@ -77,60 +77,31 @@ public class OpsSvc {
                 .addAllBatteries(batteryStorageList)
                 .build();
 
-        CompletableFuture<StoreBatteryResponse> responseFuture = new CompletableFuture<>();
-        StreamObserver<StoreBatteryResponse> responseObserver = new StreamObserver<>() {
-            @Override
-            public void onNext(StoreBatteryResponse response) {
-                responseFuture.complete(response);
-            }
-
-            @Override
-            public void onError(Throwable t) {
-                // Handle any errors
-                logger.severe("tryStoreBatteries() errored: " + t.getMessage());
-                responseFuture.completeExceptionally(t);
-            }
-
-            @Override
-            public void onCompleted() {
-                logger.info("tryStoreBatteries() completed");
-            }
-        };
-
-        grpcMethodInvoker.callMethod(
+        StoreBatteryResponse response = grpcMethodInvoker.invokeNonblock(
                 "storagesvc",
                 "tryStoreBatteries",
-                request,
-                responseObserver
+                request
         );
 
-        boolean tryStoreBatteriesSuccess = false;
-        try {
-            // Blocks until the response is available
-            tryStoreBatteriesSuccess = responseFuture.get(5, TimeUnit.SECONDS).getSuccess();
-            logger.info("tryStoreBatteries() responseFuture response: " + tryStoreBatteriesSuccess);
+        boolean tryStoreBatteriesSuccess = response.getSuccess();
+        if (tryStoreBatteriesSuccess) {
+            // Order completed => True
+            ordRecRepo.setOrderCompleted(orderId);
 
-            if (tryStoreBatteriesSuccess) {
-                // Order completed => True
-                ordRecRepo.setOrderCompleted(orderId);
+            // Store battery status => Storage
+            batInvRepo.setBatteryStatusesForIntakeOrder(
+                    orderId,
+                    BatteryStatusEnum.STORAGE.toString()
+            );
+        } else {
+            logger.severe("Order could not be marked as completed: " + orderId);
+            tryStoreBatteriesSuccess = false;
 
-                // Store battery status => Storage
-                batInvRepo.setBatteryStatusesForIntakeOrder(
-                        orderId,
-                        BatteryStatusEnum.STORAGE.toString()
-                );
-            } else {
-                logger.severe("Order could not be marked as completed: " + orderId);
-
-                // Store battery status => Rejected
-                batInvRepo.setBatteryStatusesForIntakeOrder(
-                        orderId,
-                        BatteryStatusEnum.REJECTED.toString()
-                );
-            }
-
-        } catch (Exception e) {
-            logger.severe("tryStoreBatteries() responseFuture error: " + e.getMessage());
+            // Store battery status => Rejected
+            batInvRepo.setBatteryStatusesForIntakeOrder(
+                    orderId,
+                    BatteryStatusEnum.REJECTED.toString()
+            );
         }
 
         return tryStoreBatteriesSuccess;
@@ -144,50 +115,23 @@ public class OpsSvc {
                 .addAllBatteryIdTypes(processLabBatteriesList)
                 .build();
 
-        CompletableFuture<ProcessLabBatteriesResponse> responseFuture = new CompletableFuture<>();
-        StreamObserver<ProcessLabBatteriesResponse> responseObserver = new StreamObserver<>() {
-            @Override
-            public void onNext(ProcessLabBatteriesResponse response) {
-                responseFuture.complete(response);
-            }
-
-            @Override
-            public void onError(Throwable t) {
-                // Handle any errors
-                logger.severe("processLabBatteries() errored: " + t.getMessage());
-                responseFuture.completeExceptionally(t);
-            }
-
-            @Override
-            public void onCompleted() {
-                logger.info("processLabBatteries() completed");
-            }
-        };
-
-        grpcMethodInvoker.callMethod(
+        ProcessLabBatteriesResponse response = grpcMethodInvoker.invokeNonblock(
                 "labsvc",
                 "processLabBatteries",
-                request,
-                responseObserver
+                request
         );
 
-        boolean addBatteriesToLabBacklogSuccess = false;
-        try {
-            // Blocks until the response is available
-            addBatteriesToLabBacklogSuccess = responseFuture.get(5, TimeUnit.SECONDS).getSuccess();
-            logger.info("addBatteriesToLabBacklog() responseFuture response: " + addBatteriesToLabBacklogSuccess);
+        boolean addBatteriesToLabBacklogSuccess = response.getSuccess();
 
-            if (addBatteriesToLabBacklogSuccess) {
-                // Store battery status => Testing
-                batInvRepo.setBatteryStatusesForIntakeOrder(
-                        orderId,
-                        BatteryStatusEnum.TESTING.toString()
-                );
-            } else {
-                logger.severe("Order could not be marked as testing: " + orderId);
-            }
-        } catch (Exception e) {
-            logger.severe("addBatteriesToLabBacklog() responseFuture error: " + e.getMessage());
+        if (addBatteriesToLabBacklogSuccess) {
+            // Store battery status => Testing
+            batInvRepo.setBatteryStatusesForIntakeOrder(
+                    orderId,
+                    BatteryStatusEnum.TESTING.toString()
+            );
+        } else {
+            logger.severe("Order could not be marked as testing: " + orderId);
+            addBatteriesToLabBacklogSuccess = false;
         }
 
         return addBatteriesToLabBacklogSuccess;
@@ -321,43 +265,13 @@ public class OpsSvc {
                 .setBatteryId(batteryId)
                 .build();
 
-        CompletableFuture<RemoveStorageBatteryResponse> responseFuture = new CompletableFuture<>();
-        StreamObserver<RemoveStorageBatteryResponse> responseObserver = new StreamObserver<>() {
-            @Override
-            public void onNext(RemoveStorageBatteryResponse response) {
-                responseFuture.complete(response);
-            }
-
-            @Override
-            public void onError(Throwable t) {
-                // Handle any errors
-                logger.severe("removeBatteryFromStorage() errored: " + t.getMessage());
-                responseFuture.completeExceptionally(t);
-            }
-
-            @Override
-            public void onCompleted() {
-                logger.info("removeBatteryFromStorage() completed");
-            }
-        };
-
-        grpcMethodInvoker.callMethod(
+        RemoveStorageBatteryResponse response = grpcMethodInvoker.invokeNonblock(
                 "storagesvc",
                 "removeStorageBattery",
-                request,
-                responseObserver
+                request
         );
 
-        boolean removeBatterySuccess = false;
-        try {
-            // Blocks until the response is available
-            removeBatterySuccess = responseFuture.get(5, TimeUnit.SECONDS).getSuccess();
-            logger.info("removeBatteryFromStorage() responseFuture response: " + removeBatterySuccess);
-        } catch (Exception e) {
-            logger.severe("removeBatteryFromStorage() responseFuture error: " + e.getMessage());
-        }
-
-        return removeBatterySuccess;
+        return response.getSuccess();
     }
 
     protected boolean removeBatteryFromLab(int batteryId) {
@@ -365,43 +279,13 @@ public class OpsSvc {
                 .setBatteryId(batteryId)
                 .build();
 
-        CompletableFuture<RemoveLabBatteryResponse> responseFuture = new CompletableFuture<>();
-        StreamObserver<RemoveLabBatteryResponse> responseObserver = new StreamObserver<>() {
-            @Override
-            public void onNext(RemoveLabBatteryResponse response) {
-                responseFuture.complete(response);
-            }
-
-            @Override
-            public void onError(Throwable t) {
-                // Handle any errors
-                logger.severe("removeBatteryFromLab() errored: " + t.getMessage());
-                responseFuture.completeExceptionally(t);
-            }
-
-            @Override
-            public void onCompleted() {
-                logger.info("removeBatteryFromLab() completed");
-            }
-        };
-
-        grpcMethodInvoker.callMethod(
+        RemoveLabBatteryResponse response = grpcMethodInvoker.invokeNonblock(
                 "labsvc",
                 "removeLabBattery",
-                request,
-                responseObserver
+                request
         );
 
-        boolean removeBatterySuccess = false;
-        try {
-            // Blocks until the response is available
-            removeBatterySuccess = responseFuture.get(5, TimeUnit.SECONDS).getSuccess();
-            logger.info("removeBatteryFromLab() responseFuture response: " + removeBatterySuccess);
-        } catch (Exception e) {
-            logger.severe("removeBatteryFromLab() responseFuture error: " + e.getMessage());
-        }
-
-        return removeBatterySuccess;
+        return response.getSuccess();
     }
 
     public List<BatteryInventoryType> getCurrentBatteryInventory() {
