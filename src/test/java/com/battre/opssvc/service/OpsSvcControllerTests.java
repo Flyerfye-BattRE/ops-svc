@@ -1,6 +1,7 @@
 package com.battre.opssvc.service;
 
 import com.battre.opssvc.controller.OpsSvcController;
+import com.battre.opssvc.enums.ProcessOrderStatusEnum;
 import com.battre.opssvc.model.OrderRecordType;
 import com.battre.stubs.services.ProcessIntakeBatteryOrderRequest;
 import com.battre.stubs.services.ProcessIntakeBatteryOrderResponse;
@@ -53,7 +54,7 @@ public class OpsSvcControllerTests {
         verify(opsSvc).createNewOrderRecord(any());
         verify(opsSvc).attemptStoreBatteries(eq(orderRecord.getOrderId()), any());
         verify(opsSvc).addBatteriesToLabBacklog(orderRecord.getOrderId());
-        verify(responseProcessIntakeBatteryOrderResponse).onNext(ProcessIntakeBatteryOrderResponse.newBuilder().setSuccess(true).build());
+        verify(responseProcessIntakeBatteryOrderResponse).onNext(ProcessIntakeBatteryOrderResponse.newBuilder().setSuccess(true).setStatus(ProcessOrderStatusEnum.SUCCESS.getgrpcStatus()).build());
         verify(responseProcessIntakeBatteryOrderResponse).onCompleted();
     }
 
@@ -70,7 +71,7 @@ public class OpsSvcControllerTests {
 
         verify(opsSvc).createNewOrderRecord(any());
         verify(opsSvc).attemptStoreBatteries(eq(orderRecord.getOrderId()), any());
-        verify(responseProcessIntakeBatteryOrderResponse).onNext(ProcessIntakeBatteryOrderResponse.newBuilder().setSuccess(false).build());
+        verify(responseProcessIntakeBatteryOrderResponse).onNext(ProcessIntakeBatteryOrderResponse.newBuilder().setSuccess(false).setStatus(ProcessOrderStatusEnum.STORAGESVC_STORE_BATTERIES_ERR.getgrpcStatus()).build());
         verify(responseProcessIntakeBatteryOrderResponse).onCompleted();
     }
 
@@ -89,7 +90,7 @@ public class OpsSvcControllerTests {
         verify(opsSvc).createNewOrderRecord(any());
         verify(opsSvc).attemptStoreBatteries(eq(orderRecord.getOrderId()), any());
         verify(opsSvc).addBatteriesToLabBacklog(orderRecord.getOrderId());
-        verify(responseProcessIntakeBatteryOrderResponse).onNext(ProcessIntakeBatteryOrderResponse.newBuilder().setSuccess(false).build());
+        verify(responseProcessIntakeBatteryOrderResponse).onNext(ProcessIntakeBatteryOrderResponse.newBuilder().setSuccess(false).setStatus(ProcessOrderStatusEnum.LABSVC_BACKLOG_ERR.getgrpcStatus()).build());
         verify(responseProcessIntakeBatteryOrderResponse).onCompleted();
 
     }

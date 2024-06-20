@@ -39,6 +39,10 @@ public class OrderRecordType {
     @Column(name = "notes", length = 45)
     private String notes;
 
+    public OrderRecordType() {
+        // Default constructor for Spring Data JPA
+    }
+
     public OrderRecordType(int orderTypeId, int orderSectorId, int customerId, boolean completed, String notes) {
         this.orderDate = Timestamp.from(Instant.now());
         this.orderTypeId = orderTypeId;

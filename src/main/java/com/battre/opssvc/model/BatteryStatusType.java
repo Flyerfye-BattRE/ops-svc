@@ -18,6 +18,10 @@ public class BatteryStatusType {
     @Column(name = "status", nullable = false)
     private String status;
 
+    public BatteryStatusType() {
+        // Default constructor for Spring Data JPA
+    }
+
     public int getBatteryStatusId() {
         return batteryStatusId;
     }

@@ -36,6 +36,10 @@ public class CustomerDataType {
     @Column(name = "loyalty_id", nullable = false)
     private UUID loyaltyId;
 
+    public CustomerDataType() {
+        // Default constructor for Spring Data JPA
+    }
+
     public CustomerDataType(Integer customerId, String lastName, String firstName, String email, String phone, String address, UUID loyaltyId) {
         this.customerId = customerId;
         this.lastName = lastName;

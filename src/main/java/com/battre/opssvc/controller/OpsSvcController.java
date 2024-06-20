@@ -1,6 +1,7 @@
 package com.battre.opssvc.controller;
 
 import com.battre.opssvc.enums.BatteryStatusEnum;
+import com.battre.opssvc.enums.ProcessOrderStatusEnum;
 import com.battre.opssvc.model.BatteryInventoryType;
 import com.battre.opssvc.model.CustomerDataType;
 import com.battre.opssvc.model.OrderRecordType;
@@ -50,19 +51,33 @@ public class OpsSvcController extends OpsSvcGrpc.OpsSvcImplBase {
     public void processIntakeBatteryOrder(ProcessIntakeBatteryOrderRequest request, StreamObserver<ProcessIntakeBatteryOrderResponse> responseObserver) {
         try {
             logger.info("processIntakeBatteryOrder() invoked");
+
+            // Create new order record
             OrderRecordType savedOrderRecord = opsSvc.createNewOrderRecord(request);
-
-            boolean storeBatteriesSuccess = opsSvc.attemptStoreBatteries(savedOrderRecord.getOrderId(), request.getBatteriesList());
-
-            boolean addBatteriesToLabBacklogSuccess = false;
-            if (storeBatteriesSuccess) {
-                addBatteriesToLabBacklogSuccess = opsSvc.addBatteriesToLabBacklog(savedOrderRecord.getOrderId());
+            if (savedOrderRecord == null) {
+                handleprocessIntakeBatteryOrderFailure(responseObserver, ProcessOrderStatusEnum.OPSSVC_CREATE_RECORD_ERR);
+                return;
             }
 
-            ProcessIntakeBatteryOrderResponse response = ProcessIntakeBatteryOrderResponse.newBuilder()
-                    .setSuccess(addBatteriesToLabBacklogSuccess)
-                    .build();
+            // Attempt to store batteries
+            boolean storeBatteriesSuccess = opsSvc.attemptStoreBatteries(savedOrderRecord.getOrderId(), request.getBatteriesList());
+            if (!storeBatteriesSuccess) {
+                handleprocessIntakeBatteryOrderFailure(responseObserver, ProcessOrderStatusEnum.STORAGESVC_STORE_BATTERIES_ERR);
+                return;
+            }
 
+            // Add batteries to lab backlog
+            boolean addBatteriesToLabBacklogSuccess = opsSvc.addBatteriesToLabBacklog(savedOrderRecord.getOrderId());
+            if (!addBatteriesToLabBacklogSuccess) {
+                handleprocessIntakeBatteryOrderFailure(responseObserver, ProcessOrderStatusEnum.LABSVC_BACKLOG_ERR);
+                return;
+            }
+
+            // If all steps succeed, return success response
+            ProcessIntakeBatteryOrderResponse response = ProcessIntakeBatteryOrderResponse.newBuilder()
+                    .setSuccess(true)
+                    .setStatus(ProcessOrderStatusEnum.SUCCESS.getgrpcStatus())
+                    .build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 
@@ -71,6 +86,18 @@ public class OpsSvcController extends OpsSvcGrpc.OpsSvcImplBase {
             logger.severe("processIntakeBatteryOrder() failed: " + e.getMessage());
             responseObserver.onError(e);
         }
+    }
+
+    private void handleprocessIntakeBatteryOrderFailure(
+            StreamObserver<ProcessIntakeBatteryOrderResponse> responseObserver,
+            ProcessOrderStatusEnum statusEnum
+    ) {
+        ProcessIntakeBatteryOrderResponse response = ProcessIntakeBatteryOrderResponse.newBuilder()
+                .setSuccess(false)
+                .setStatus(statusEnum.getgrpcStatus())
+                .build();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
     }
 
     @Override

@@ -43,12 +43,12 @@ WHERE NOT EXISTS (
 );
 
 -- Insert statements for the "CustomerData" table
-INSERT INTO OpsSvcSchema.CustomerData (customer_id, last_name, first_name, email, phone, address, loyalty_id)
+INSERT INTO OpsSvcSchema.CustomerData (last_name, first_name, email, phone, address, loyalty_id)
 SELECT * FROM (VALUES
-	(1, 'Doe', 'John', 'jdoe@example.com', '(555)123-4567', '555 Elm St, Boulder, Colorado, USA', uuid_generate_v4()),
-	(2, '', 'Ender', 'endy@example.com', '(555)654-6969', '8754 85th N St, Fishers, Indiana, USA', uuid_generate_v4()),
-	(3, 'Jane', 'Sarah', 'sjane@otherexample.com', '(555)987-6543', '111 First Ave, Austin, Texas, USA', uuid_generate_v4())
-) AS v (customer_id, last_name, first_name, email, phone, address, loyalty_id)
+	('Doe', 'John', 'jdoe@example.com', '(555)123-4567', '555 Elm St, Boulder, Colorado, USA', uuid_generate_v4()),
+	('', 'Ender', 'endy@example.com', '(555)654-6969', '8754 85th N St, Fishers, Indiana, USA', uuid_generate_v4()),
+	('Jane', 'Sarah', 'sjane@otherexample.com', '(555)987-6543', '111 First Ave, Austin, Texas, USA', uuid_generate_v4())
+) AS v (last_name, first_name, email, phone, address, loyalty_id)
 WHERE NOT EXISTS (
     SELECT 1 FROM OpsSvcSchema.CustomerData
 );

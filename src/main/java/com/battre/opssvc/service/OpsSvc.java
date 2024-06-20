@@ -139,7 +139,7 @@ public class OpsSvc {
 
     @Transactional
     public boolean updateBatteryStatus(int batteryId, BatteryStatusEnum batteryStatusEnum) {
-        batInvRepo.setBatteryStatusesForIntakeOrder(batteryId, batteryStatusEnum.toString());
+        batInvRepo.setBatteryStatusForBatteryId(batteryId, batteryStatusEnum.toString());
 
         return true;
     }

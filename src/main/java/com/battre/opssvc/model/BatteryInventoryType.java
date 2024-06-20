@@ -30,6 +30,10 @@ public class BatteryInventoryType {
     @Column(name = "output_order_id")
     private Integer outputOrderId;
 
+    public BatteryInventoryType() {
+        // Default constructor for Spring Data JPA
+    }
+
     public BatteryInventoryType(int batteryStatusId, int batteryTypeId, int intakeOrderId) {
         this.batteryStatusId = batteryStatusId;
         this.batteryTypeId = batteryTypeId;
