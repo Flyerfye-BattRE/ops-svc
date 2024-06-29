@@ -92,6 +92,8 @@ public class OpsSvcController extends OpsSvcGrpc.OpsSvcImplBase {
             StreamObserver<ProcessIntakeBatteryOrderResponse> responseObserver,
             ProcessOrderStatusEnum statusEnum
     ) {
+        logger.severe("OpsSvc failure: " + statusEnum.getgrpcStatus().toString());
+
         ProcessIntakeBatteryOrderResponse response = ProcessIntakeBatteryOrderResponse.newBuilder()
                 .setSuccess(false)
                 .setStatus(statusEnum.getgrpcStatus())

@@ -1,34 +1,10 @@
 version: '3'
 
-networks:
-  my_network:
-    external: true
-    driver: bridge
-
 services:
-  db:
-    image: postgres:16.2-alpine3.19
-    container_name: opssvc_postgres_db
-    env_file:
-      - .env
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - my_network
-
   opssvc:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "50020:50020"
-      - "50025:50025"
-    env_file:
-      - .env
-    depends_on:
-      - db
-    networks:
-      - my_network
-
-volumes:
-  postgres_data:
+      - "8080:8080"
+      - "80:80"

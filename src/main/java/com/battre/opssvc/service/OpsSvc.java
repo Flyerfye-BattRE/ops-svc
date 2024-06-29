@@ -83,8 +83,7 @@ public class OpsSvc {
                 request
         );
 
-        boolean tryStoreBatteriesSuccess = response.getSuccess();
-        if (tryStoreBatteriesSuccess) {
+        if (response != null && response.getSuccess()) {
             // Order completed => True
             ordRecRepo.setOrderCompleted(orderId);
 
@@ -93,18 +92,19 @@ public class OpsSvc {
                     orderId,
                     BatteryStatusEnum.STORAGE.toString()
             );
+
+            return true;
         } else {
             logger.severe("Order could not be marked as completed: " + orderId);
-            tryStoreBatteriesSuccess = false;
 
             // Store battery status => Rejected
             batInvRepo.setBatteryStatusesForIntakeOrder(
                     orderId,
                     BatteryStatusEnum.REJECTED.toString()
             );
-        }
 
-        return tryStoreBatteriesSuccess;
+            return false;
+        }
     }
 
     public boolean addBatteriesToLabBacklog(int orderId) {
@@ -121,20 +121,18 @@ public class OpsSvc {
                 request
         );
 
-        boolean addBatteriesToLabBacklogSuccess = response.getSuccess();
-
-        if (addBatteriesToLabBacklogSuccess) {
+        if (response != null && response.getSuccess()) {
             // Store battery status => Testing
             batInvRepo.setBatteryStatusesForIntakeOrder(
                     orderId,
                     BatteryStatusEnum.TESTING.toString()
             );
+
+            return true;
         } else {
             logger.severe("Order could not be marked as testing: " + orderId);
-            addBatteriesToLabBacklogSuccess = false;
+            return false;
         }
-
-        return addBatteriesToLabBacklogSuccess;
     }
 
     @Transactional
@@ -271,7 +269,11 @@ public class OpsSvc {
                 request
         );
 
-        return response.getSuccess();
+        if(response != null) {
+            return response.getSuccess();
+        } else {
+            return false;
+        }
     }
 
     protected boolean removeBatteryFromLab(int batteryId) {
@@ -285,7 +287,11 @@ public class OpsSvc {
                 request
         );
 
-        return response.getSuccess();
+        if(response != null) {
+            return response.getSuccess();
+        } else {
+            return false;
+        }
     }
 
     public List<BatteryInventoryType> getCurrentBatteryInventory() {

@@ -3,17 +3,15 @@ package com.battre.opssvc;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.annotation.Bean;
 
 import java.util.Map;
 
-@EnableDiscoveryClient
 @SpringBootApplication
-public class OpssvcApplication {
+public class OpsSvcApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(OpssvcApplication.class, args);
+        SpringApplication.run(OpsSvcApplication.class, args);
     }
 
     // Needed bc existing DB naming convention is UpperCamelCase while HibernateJPA forces snake_case, causing issues
