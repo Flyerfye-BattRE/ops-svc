@@ -10,18 +10,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public interface OrderRecordsRepository extends JpaRepository<OrderRecordType, Integer> {
-    @Query("SELECT COUNT(*) FROM OrderRecordType")
-    Integer countOrderRecords();
+  @Query("SELECT COUNT(*) FROM OrderRecordType")
+  Integer countOrderRecords();
 
-    @Query("SELECT completed " +
-            "FROM OrderRecordType " +
-            "WHERE orderId = :orderId")
-    Boolean getOrderCompleted(@Param("orderId") int orderId);
+  @Query("SELECT completed " + "FROM OrderRecordType " + "WHERE orderId = :orderId")
+  Boolean getOrderCompleted(@Param("orderId") int orderId);
 
-    @Transactional
-    @Modifying
-    @Query("UPDATE OrderRecordType " +
-            "SET completed = true " +
-            "WHERE orderId = :orderId")
-    void setOrderCompleted(@Param("orderId") int orderId);
+  @Transactional
+  @Modifying
+  @Query("UPDATE OrderRecordType " + "SET completed = true " + "WHERE orderId = :orderId")
+  void setOrderCompleted(@Param("orderId") int orderId);
 }

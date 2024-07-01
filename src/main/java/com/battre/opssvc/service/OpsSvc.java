@@ -22,19 +22,15 @@ import com.battre.stubs.services.RemoveStorageBatteryRequest;
 import com.battre.stubs.services.RemoveStorageBatteryResponse;
 import com.battre.stubs.services.StoreBatteryRequest;
 import com.battre.stubs.services.StoreBatteryResponse;
-import io.grpc.stub.StreamObserver;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class OpsSvc {
@@ -269,7 +265,7 @@ public class OpsSvc {
                 request
         );
 
-        if(response != null) {
+        if (response != null) {
             return response.getSuccess();
         } else {
             return false;
@@ -287,7 +283,7 @@ public class OpsSvc {
                 request
         );
 
-        if(response != null) {
+        if (response != null) {
             return response.getSuccess();
         } else {
             return false;

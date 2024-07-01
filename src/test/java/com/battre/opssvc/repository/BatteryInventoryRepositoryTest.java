@@ -1,19 +1,18 @@
 package com.battre.opssvc.repository;
 
+import static com.battre.opssvc.service.OpsSvc.convertToProcessLabBatteriesList;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.battre.opssvc.enums.BatteryStatusEnum;
 import com.battre.stubs.services.BatteryIdType;
+import java.util.List;
+import java.util.logging.Logger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-import java.util.List;
-import java.util.logging.Logger;
-
-import static com.battre.opssvc.service.OpsSvc.convertToProcessLabBatteriesList;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(SpringExtension.class)
 @DataJpaTest

@@ -10,23 +10,23 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "BatteryStatus", schema = "OpsSvcSchema")
 public class BatteryStatusType {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "battery_status_id", nullable = false)
-    private int batteryStatusId;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  @Column(name = "battery_status_id", nullable = false)
+  private int batteryStatusId;
 
-    @Column(name = "status", nullable = false)
-    private String status;
+  @Column(name = "status", nullable = false)
+  private String status;
 
-    public BatteryStatusType() {
-        // Default constructor for Spring Data JPA
-    }
+  public BatteryStatusType() {
+    // Default constructor for Spring Data JPA
+  }
 
-    public int getBatteryStatusId() {
-        return batteryStatusId;
-    }
+  public int getBatteryStatusId() {
+    return batteryStatusId;
+  }
 
-    public String getStatus() {
-        return status;
-    }
+  public String getStatus() {
+    return status;
+  }
 }

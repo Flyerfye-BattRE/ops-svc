@@ -11,13 +11,13 @@ import java.util.logging.Logger;
 @ExtendWith(SpringExtension.class)
 @DataJpaTest
 public class BatteryStatusRepositoryTest {
-    private static final Logger logger = Logger.getLogger(BatteryStatusRepositoryTest.class.getName());
+  private static final Logger logger =
+      Logger.getLogger(BatteryStatusRepositoryTest.class.getName());
 
-    @Autowired
-    private BatteryStatusRepository batStatusRepo;
+  @Autowired private BatteryStatusRepository batStatusRepo;
 
-    @Test
-    public void testGetBatteryStatusTypes() {
-        // TODO: Implement test
-    }
+  @Test
+  public void testGetBatteryStatusTypes() {
+    // TODO: Implement test
+  }
 }

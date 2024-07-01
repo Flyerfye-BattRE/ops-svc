@@ -9,8 +9,6 @@ import java.util.List;
 
 @Repository
 public interface CustomerDataRepository extends JpaRepository<CustomerDataType, Integer> {
-    @Query("SELECT cdt " +
-            "FROM CustomerDataType AS cdt " +
-            "ORDER BY customerId ")
-    List<CustomerDataType> getCustomerList();
+  @Query("SELECT cdt " + "FROM CustomerDataType AS cdt " + "ORDER BY customerId ")
+  List<CustomerDataType> getCustomerList();
 }

@@ -29,12 +29,11 @@ import com.battre.stubs.services.UpdateCustomerRequest;
 import com.battre.stubs.services.UpdateCustomerResponse;
 import com.google.protobuf.Int32Value;
 import io.grpc.stub.StreamObserver;
-import net.devh.boot.grpc.server.service.GrpcService;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
+import net.devh.boot.grpc.server.service.GrpcService;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @GrpcService
 public class OpsSvcController extends OpsSvcGrpc.OpsSvcImplBase {
@@ -197,10 +196,10 @@ public class OpsSvcController extends OpsSvcGrpc.OpsSvcImplBase {
                     .setBatteryTypeId(battery.getBatteryTypeId())
                     .setIntakeOrderId(battery.getIntakeOrderId());
 
-            if(battery.getHoldId() != null) {
+            if (battery.getHoldId() != null) {
                 batteryBuilder.setOptionalHoldId(Int32Value.of(battery.getHoldId()));
             }
-            if(battery.getOutputOrderId() != null) {
+            if (battery.getOutputOrderId() != null) {
                 batteryBuilder.setOptionalOutputOrderId(Int32Value.of(battery.getOutputOrderId()));
             }
 

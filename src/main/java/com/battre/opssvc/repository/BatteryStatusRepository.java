@@ -9,6 +9,6 @@ import java.util.List;
 
 @Repository
 public interface BatteryStatusRepository extends JpaRepository<BatteryStatusType, Integer> {
-    @Query("SELECT bst FROM BatteryStatusType bst ORDER BY batteryStatusId")
-    List<BatteryStatusType> getBatteryStatusTypes();
+  @Query("SELECT bst FROM BatteryStatusType bst ORDER BY batteryStatusId")
+  List<BatteryStatusType> getBatteryStatusTypes();
 }

@@ -11,13 +11,12 @@ import java.util.logging.Logger;
 @ExtendWith(SpringExtension.class)
 @DataJpaTest
 public class CustomerDataRepositoryTest {
-    private static final Logger logger = Logger.getLogger(CustomerDataRepositoryTest.class.getName());
+  private static final Logger logger = Logger.getLogger(CustomerDataRepositoryTest.class.getName());
 
-    @Autowired
-    private CustomerDataRepository custDataRepo;
+  @Autowired private CustomerDataRepository custDataRepo;
 
-    @Test
-    public void testGetCustomerList() {
-        // TODO: Implement test
-    }
+  @Test
+  public void testGetCustomerList() {
+    // TODO: Implement test
+  }
 }

@@ -1,5 +1,10 @@
 package com.battre.opssvc.service;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.battre.opssvc.controller.OpsSvcController;
 import com.battre.opssvc.enums.ProcessOrderStatusEnum;
 import com.battre.opssvc.model.OrderRecordType;
@@ -11,11 +16,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class OpsSvcControllerTests {
     @Mock

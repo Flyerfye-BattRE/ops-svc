@@ -2,6 +2,7 @@ package com.battre.opssvc.config;
 
 import com.battre.grpcifc.DiscoveryClientAdapter;
 import com.battre.grpcifc.GrpcMethodInvoker;
+import java.util.logging.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,11 +11,8 @@ import software.amazon.awssdk.services.servicediscovery.model.DiscoverInstancesR
 import software.amazon.awssdk.services.servicediscovery.model.DiscoverInstancesResponse;
 import software.amazon.awssdk.services.servicediscovery.model.HttpInstanceSummary;
 
-import java.util.logging.Logger;
-
 /**
  * Configures the grpc method invoker to be able to use AWS CloudMap for service discovery
- *
  */
 @Configuration
 public class GrpcMethodInvokerConfig {

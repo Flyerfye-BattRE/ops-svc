@@ -12,55 +12,57 @@ import java.util.List;
 
 @Repository
 public interface BatteryInventoryRepository extends JpaRepository<BatteryInventoryType, Integer> {
-    @Query("SELECT COUNT(*) FROM BatteryInventoryType")
-    Integer countBatteryInventory();
+  @Query("SELECT COUNT(*) FROM BatteryInventoryType")
+  Integer countBatteryInventory();
 
-    @Transactional
-    @Modifying
-    @Query("UPDATE BatteryInventoryType " +
-            "SET batteryStatusId = (" +
-                "SELECT batteryStatusId " +
-                "FROM BatteryStatusType " +
-                "WHERE status = :batteryStatus" +
-            ") " +
-            "WHERE intakeOrderId = :orderId")
-    void setBatteryStatusesForIntakeOrder(@Param("orderId") int orderId,
-                                          @Param("batteryStatus") String batteryStatus);
+  @Transactional
+  @Modifying
+  @Query(
+      "UPDATE BatteryInventoryType "
+          + "SET batteryStatusId = ("
+          + "SELECT batteryStatusId "
+          + "FROM BatteryStatusType "
+          + "WHERE status = :batteryStatus"
+          + ") "
+          + "WHERE intakeOrderId = :orderId")
+  void setBatteryStatusesForIntakeOrder(
+      @Param("orderId") int orderId, @Param("batteryStatus") String batteryStatus);
 
-    @Transactional
-    @Modifying
-    @Query("UPDATE BatteryInventoryType " +
-            "SET batteryStatusId = (" +
-                "SELECT batteryStatusId " +
-                "FROM BatteryStatusType " +
-                "WHERE status = :batteryStatus" +
-            ") " +
-            "WHERE batteryId = :batteryId")
-    void setBatteryStatusForBatteryId(@Param("batteryId") int batteryId,
-                                      @Param("batteryStatus") String batteryStatus);
+  @Transactional
+  @Modifying
+  @Query(
+      "UPDATE BatteryInventoryType "
+          + "SET batteryStatusId = ("
+          + "SELECT batteryStatusId "
+          + "FROM BatteryStatusType "
+          + "WHERE status = :batteryStatus"
+          + ") "
+          + "WHERE batteryId = :batteryId")
+  void setBatteryStatusForBatteryId(
+      @Param("batteryId") int batteryId, @Param("batteryStatus") String batteryStatus);
 
-    @Query("SELECT bst.status " +
-            "FROM BatteryInventoryType AS bit " +
-            "INNER JOIN BatteryStatusType AS bst ON bst.batteryStatusId = bit.batteryStatusId " +
-            "WHERE bit.intakeOrderId = :orderId " +
-            "GROUP BY bst.status")
-    List<String> getBatteryStatusesForIntakeOrder(@Param("orderId") int orderId);
+  @Query(
+      "SELECT bst.status "
+          + "FROM BatteryInventoryType AS bit "
+          + "INNER JOIN BatteryStatusType AS bst ON bst.batteryStatusId = bit.batteryStatusId "
+          + "WHERE bit.intakeOrderId = :orderId "
+          + "GROUP BY bst.status")
+  List<String> getBatteryStatusesForIntakeOrder(@Param("orderId") int orderId);
 
-    @Query("SELECT batteryId, batteryTypeId " +
-            "FROM BatteryInventoryType " +
-            "WHERE intakeOrderId = :orderId " +
-            "GROUP BY batteryId, batteryTypeId")
-    List<Object[]> getBatteryIdTypeIdsForIntakeOrder(@Param("orderId") int orderId);
+  @Query(
+      "SELECT batteryId, batteryTypeId "
+          + "FROM BatteryInventoryType "
+          + "WHERE intakeOrderId = :orderId "
+          + "GROUP BY batteryId, batteryTypeId")
+  List<Object[]> getBatteryIdTypeIdsForIntakeOrder(@Param("orderId") int orderId);
 
-    @Query("SELECT bit " +
-            "FROM BatteryInventoryType AS bit " +
-            "WHERE bit.intakeOrderId <= 6 " +
-            "ORDER BY batteryId")
-    List<BatteryInventoryType> getCurrentBatteryInventory();
+  @Query(
+      "SELECT bit "
+          + "FROM BatteryInventoryType AS bit "
+          + "WHERE bit.intakeOrderId <= 6 "
+          + "ORDER BY batteryId")
+  List<BatteryInventoryType> getCurrentBatteryInventory();
 
-    @Query("SELECT bit " +
-            "FROM BatteryInventoryType AS bit " +
-            "ORDER BY batteryId " +
-            "LIMIT 1000")
-    List<BatteryInventoryType> getBatteryInventory();
+  @Query("SELECT bit " + "FROM BatteryInventoryType AS bit " + "ORDER BY batteryId " + "LIMIT 1000")
+  List<BatteryInventoryType> getBatteryInventory();
 }
