@@ -13,6 +13,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.servicediscovery.ServiceDiscoveryClient;
 import software.amazon.awssdk.services.servicediscovery.model.CreateServiceRequest;
 import software.amazon.awssdk.services.servicediscovery.model.CreateServiceResponse;
+import software.amazon.awssdk.services.servicediscovery.model.DeleteServiceRequest;
 import software.amazon.awssdk.services.servicediscovery.model.DeregisterInstanceRequest;
 import software.amazon.awssdk.services.servicediscovery.model.DnsConfig;
 import software.amazon.awssdk.services.servicediscovery.model.DnsRecord;
@@ -80,6 +81,7 @@ public class AwsCloudMapConfig {
     public void onDestroy() {
         if (Boolean.parseBoolean(IS_LOCAL)) {
             deregisterInstance();
+            deregisterService();
         }
     }
 
@@ -91,6 +93,15 @@ public class AwsCloudMapConfig {
                 .build();
 
         serviceDiscoveryClient.deregisterInstance(request);
+    }
+
+    private void deregisterService() {
+        logger.info("De-registering service");
+        DeleteServiceRequest request = DeleteServiceRequest.builder()
+                .id(serviceId)
+                .build();
+
+        serviceDiscoveryClient.deleteService(request);
     }
 
     public String createService() {

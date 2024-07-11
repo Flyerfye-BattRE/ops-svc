@@ -11,6 +11,7 @@ import com.battre.opssvc.repository.BatteryStatusRepository;
 import com.battre.opssvc.repository.CustomerDataRepository;
 import com.battre.opssvc.repository.OrderRecordsRepository;
 import com.battre.stubs.services.BatteryIdType;
+import com.battre.stubs.services.BatteryStatusCount;
 import com.battre.stubs.services.BatteryStorageInfo;
 import com.battre.stubs.services.BatteryTypeTierCount;
 import com.battre.stubs.services.ProcessIntakeBatteryOrderRequest;
@@ -296,6 +297,21 @@ public class OpsSvc {
 
     public List<BatteryInventoryType> getBatteryInventory() {
         return batInvRepo.getBatteryInventory();
+    }
+
+    public List<BatteryStatusCount> getBatteryStatusCounts() {
+        List<Object[]> batteryStatusCountsList = batInvRepo.getBatteryStatusCounts();
+
+        return batteryStatusCountsList.stream()
+                .map(batteryStatusCount -> BatteryStatusCount.newBuilder()
+                        .setBatteryStatus(BatteryStatusEnum.fromStatusDescription((String) batteryStatusCount[0]).getGrpcStatus())
+                        .setCount(((Long) batteryStatusCount[1]).intValue())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    public Integer countCustomers() {
+        return customerDataRepo.countCustomers();
     }
 
     @Transactional

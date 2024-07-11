@@ -65,4 +65,11 @@ public interface BatteryInventoryRepository extends JpaRepository<BatteryInvento
 
   @Query("SELECT bit " + "FROM BatteryInventoryType AS bit " + "ORDER BY batteryId " + "LIMIT 1000")
   List<BatteryInventoryType> getBatteryInventory();
+
+  @Query(
+          "SELECT bst.status, COUNT(*)"
+                  + "FROM BatteryInventoryType AS bit "
+                  + "INNER JOIN BatteryStatusType AS bst ON bst.batteryStatusId = bit.batteryStatusId "
+                  + "GROUP BY bst.status")
+  List<Object[]>  getBatteryStatusCounts();
 }

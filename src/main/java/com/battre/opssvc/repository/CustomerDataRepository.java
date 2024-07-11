@@ -11,4 +11,7 @@ import java.util.List;
 public interface CustomerDataRepository extends JpaRepository<CustomerDataType, Integer> {
   @Query("SELECT cdt " + "FROM CustomerDataType AS cdt " + "ORDER BY customerId ")
   List<CustomerDataType> getCustomerList();
+
+  @Query("SELECT COUNT(DISTINCT cdt.loyaltyId) FROM CustomerDataType AS cdt")
+  Integer countCustomers();
 }
