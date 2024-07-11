@@ -1,11 +1,10 @@
 package com.battre.opssvc;
 
+import java.util.Map;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
 import org.springframework.context.annotation.Bean;
-
-import java.util.Map;
 
 @SpringBootApplication
 public class OpsSvcApplication {

@@ -35,313 +35,303 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class OpsSvc {
-    private static final Logger logger = Logger.getLogger(OpsSvc.class.getName());
-    private final BatteryInventoryRepository batInvRepo;
-    private final BatteryStatusRepository batStatusRepo;
-    private final CustomerDataRepository customerDataRepo;
-    private final OrderRecordsRepository ordRecRepo;
-    private final GrpcMethodInvoker grpcMethodInvoker;
+  private static final Logger logger = Logger.getLogger(OpsSvc.class.getName());
+  private final BatteryInventoryRepository batInvRepo;
+  private final BatteryStatusRepository batStatusRepo;
+  private final CustomerDataRepository customerDataRepo;
+  private final OrderRecordsRepository ordRecRepo;
+  private final GrpcMethodInvoker grpcMethodInvoker;
 
-    @Autowired
-    public OpsSvc(BatteryInventoryRepository batInvRepo,
-                  BatteryStatusRepository batStatusRepo,
-                  CustomerDataRepository customerDataRepo,
-                  OrderRecordsRepository ordRecRepo,
-                  GrpcMethodInvoker grpcMethodInvoker
-    ) {
-        this.batInvRepo = batInvRepo;
-        this.batStatusRepo = batStatusRepo;
-        this.customerDataRepo = customerDataRepo;
-        this.ordRecRepo = ordRecRepo;
-        this.grpcMethodInvoker = grpcMethodInvoker;
+  @Autowired
+  public OpsSvc(
+      BatteryInventoryRepository batInvRepo,
+      BatteryStatusRepository batStatusRepo,
+      CustomerDataRepository customerDataRepo,
+      OrderRecordsRepository ordRecRepo,
+      GrpcMethodInvoker grpcMethodInvoker) {
+    this.batInvRepo = batInvRepo;
+    this.batStatusRepo = batStatusRepo;
+    this.customerDataRepo = customerDataRepo;
+    this.ordRecRepo = ordRecRepo;
+    this.grpcMethodInvoker = grpcMethodInvoker;
+  }
+
+  public static List<BatteryIdType> convertToProcessLabBatteriesList(
+      List<Object[]> batteryIdTypeIdList) {
+    return batteryIdTypeIdList.stream()
+        .map(
+            batteryIdTypeId ->
+                BatteryIdType.newBuilder()
+                    .setBatteryId((Integer) batteryIdTypeId[0])
+                    .setBatteryTypeId((Integer) batteryIdTypeId[1])
+                    .build())
+        .collect(Collectors.toList());
+  }
+
+  public boolean attemptStoreBatteries(int orderId, List<BatteryTypeTierCount> batteryList) {
+    // creates the battery entries in the battery inventory table and assembles a list for storage
+    // service
+    List<BatteryStorageInfo> batteryStorageList = createNewBatteryStorageList(orderId, batteryList);
+
+    StoreBatteryRequest request =
+        StoreBatteryRequest.newBuilder()
+            .setOrderId(orderId)
+            .addAllBatteries(batteryStorageList)
+            .build();
+
+    StoreBatteryResponse response =
+        grpcMethodInvoker.invokeNonblock("storagesvc", "tryStoreBatteries", request);
+
+    if (response != null && response.getSuccess()) {
+      // Order completed => True
+      ordRecRepo.setOrderCompleted(orderId);
+
+      // Store battery status => Storage
+      batInvRepo.setBatteryStatusesForIntakeOrder(orderId, BatteryStatusEnum.STORAGE.toString());
+
+      return true;
+    } else {
+      logger.severe("Order could not be marked as completed: " + orderId);
+
+      // Store battery status => Rejected
+      batInvRepo.setBatteryStatusesForIntakeOrder(orderId, BatteryStatusEnum.REJECTED.toString());
+
+      return false;
+    }
+  }
+
+  public boolean addBatteriesToLabBacklog(int orderId) {
+    List<Object[]> batteryIdTypeIdList = batInvRepo.getBatteryIdTypeIdsForIntakeOrder(orderId);
+    List<BatteryIdType> processLabBatteriesList =
+        convertToProcessLabBatteriesList(batteryIdTypeIdList);
+
+    ProcessLabBatteriesRequest request =
+        ProcessLabBatteriesRequest.newBuilder()
+            .addAllBatteryIdTypes(processLabBatteriesList)
+            .build();
+
+    ProcessLabBatteriesResponse response =
+        grpcMethodInvoker.invokeNonblock("labsvc", "processLabBatteries", request);
+
+    if (response != null && response.getSuccess()) {
+      // Store battery status => Testing
+      batInvRepo.setBatteryStatusesForIntakeOrder(orderId, BatteryStatusEnum.TESTING.toString());
+
+      return true;
+    } else {
+      logger.severe("Order could not be marked as testing: " + orderId);
+      return false;
+    }
+  }
+
+  @Transactional
+  public boolean updateBatteryStatus(int batteryId, BatteryStatusEnum batteryStatusEnum) {
+    batInvRepo.setBatteryStatusForBatteryId(batteryId, batteryStatusEnum.toString());
+
+    return true;
+  }
+
+  public OrderRecordType createNewOrderRecord(ProcessIntakeBatteryOrderRequest request) {
+    Random random = new Random();
+
+    // Create new order entry
+    int orderTypeId = OrderTypeEnum.INTAKE.getStatusCode();
+    int orderSectorId = random.nextInt(5) + 1; // Randomly select one of the available sectors
+    int customerId = random.nextInt(2) + 1; // Randomly select one of the available customers
+    boolean completed = false;
+    String notes = "";
+
+    // Concatenate the type/count info in notes
+    for (BatteryTypeTierCount entry : request.getBatteriesList()) {
+      notes = notes + "[" + entry.getBatteryType() + "]:x" + entry.getBatteryCount() + ",";
     }
 
-    public static List<BatteryIdType> convertToProcessLabBatteriesList(List<Object[]> batteryIdTypeIdList) {
-        return batteryIdTypeIdList.stream()
-                .map(batteryIdTypeId -> BatteryIdType.newBuilder()
-                        .setBatteryId((Integer) batteryIdTypeId[0])
-                        .setBatteryTypeId((Integer) batteryIdTypeId[1])
-                        .build())
-                .collect(Collectors.toList());
+    OrderRecordType intakeOrderRecord =
+        new OrderRecordType(orderTypeId, orderSectorId, customerId, completed, notes);
+
+    OrderRecordType newOrderRecord = ordRecRepo.save(intakeOrderRecord);
+    logger.info(
+        "After saving order record ["
+            + newOrderRecord.getOrderId()
+            + "], count: "
+            + ordRecRepo.countOrderRecords());
+    return newOrderRecord;
+  }
+
+  private List<BatteryStorageInfo> createNewBatteryStorageList(
+      int orderId, List<BatteryTypeTierCount> batteryList) {
+    List<BatteryStorageInfo> batteryStorageList = new ArrayList<>();
+
+    // Create new batteries
+    for (BatteryTypeTierCount batteryTypeTierCount : batteryList) {
+      for (int i = 0; i < batteryTypeTierCount.getBatteryCount(); i++) {
+        BatteryInventoryType newBattery =
+            createNewBatteryEntry(orderId, batteryTypeTierCount.getBatteryType());
+        batteryStorageList.add(
+            BatteryStorageInfo.newBuilder()
+                .setBatteryId(newBattery.getBatteryId())
+                .setBatteryTier(batteryTypeTierCount.getBatteryTier())
+                .build());
+      }
     }
 
-    public boolean attemptStoreBatteries(int orderId, List<BatteryTypeTierCount> batteryList) {
-        //creates the battery entries in the battery inventory table and assembles a list for storage service
-        List<BatteryStorageInfo> batteryStorageList = createNewBatteryStorageList(orderId, batteryList);
+    logger.info(
+        "After saving batteries ["
+            + batteryList.size()
+            + "], count: "
+            + batInvRepo.countBatteryInventory());
 
-        StoreBatteryRequest request = StoreBatteryRequest.newBuilder()
-                .setOrderId(orderId)
-                .addAllBatteries(batteryStorageList)
-                .build();
+    return batteryStorageList;
+  }
 
-        StoreBatteryResponse response = grpcMethodInvoker.invokeNonblock(
-                "storagesvc",
-                "tryStoreBatteries",
-                request
-        );
+  private BatteryInventoryType createNewBatteryEntry(int orderId, int typeId) {
+    // Create new battery entry
+    int batteryStatusId = BatteryStatusEnum.INTAKE.getStatusCode();
+    int intakeOrderId = orderId;
+    int batteryTypeId = typeId;
 
-        if (response != null && response.getSuccess()) {
-            // Order completed => True
-            ordRecRepo.setOrderCompleted(orderId);
+    BatteryInventoryType batteryInventoryEntry =
+        new BatteryInventoryType(batteryStatusId, batteryTypeId, intakeOrderId);
 
-            // Store battery status => Storage
-            batInvRepo.setBatteryStatusesForIntakeOrder(
-                    orderId,
-                    BatteryStatusEnum.STORAGE.toString()
-            );
+    logger.info("Creating: " + batteryInventoryEntry);
+    return batInvRepo.save(batteryInventoryEntry);
+  }
 
-            return true;
+  @Transactional
+  public boolean destroyBattery(Integer batteryId) {
+    // check if battery is present in inventory before deleting
+    Optional<BatteryInventoryType> optionalBattery = batInvRepo.findById(batteryId);
+    if (optionalBattery.isPresent()
+        && (
+        // if the battery is still physically in the factory
+        optionalBattery.get().getBatteryStatusId() == BatteryStatusEnum.INTAKE.getStatusCode()
+            || optionalBattery.get().getBatteryStatusId()
+                == BatteryStatusEnum.TESTING.getStatusCode()
+            || optionalBattery.get().getBatteryStatusId()
+                == BatteryStatusEnum.REFURB.getStatusCode()
+            || optionalBattery.get().getBatteryStatusId()
+                == BatteryStatusEnum.STORAGE.getStatusCode()
+            || optionalBattery.get().getBatteryStatusId()
+                == BatteryStatusEnum.HOLD.getStatusCode())) {
+      BatteryInventoryType existingBattery = optionalBattery.get();
+      int batId = existingBattery.getBatteryId();
+
+      boolean labSvcSuccess = true;
+      // if battery is being processed in the lab, remove it
+      if (existingBattery.getBatteryStatusId() == BatteryStatusEnum.TESTING.getStatusCode()
+          || existingBattery.getBatteryStatusId() == BatteryStatusEnum.REFURB.getStatusCode()) {
+        // labSvc.removeBattery
+        labSvcSuccess = removeBatteryFromLab(batId);
+        if (labSvcSuccess) {
+          logger.info("Battery " + batId + " successfully removed from lab.");
         } else {
-            logger.severe("Order could not be marked as completed: " + orderId);
-
-            // Store battery status => Rejected
-            batInvRepo.setBatteryStatusesForIntakeOrder(
-                    orderId,
-                    BatteryStatusEnum.REJECTED.toString()
-            );
-
-            return false;
+          logger.severe("Battery " + batId + " NOT successfully removed from lab.");
         }
+      }
+
+      // remove battery from storage
+      boolean storageSvcSuccess = removeBatteryFromStorage(batId);
+      if (storageSvcSuccess) {
+        logger.info("Battery " + batId + " successfully removed from storage.");
+      } else {
+        logger.severe("Battery " + batId + " NOT successfully removed from storage.");
+      }
+
+      // TODO: Check/Update ShippingSvc in the future, if necessary
+
+      existingBattery.setHoldId(null);
+      existingBattery.setBatteryStatusId(BatteryStatusEnum.DESTROYED.getStatusCode());
+      batInvRepo.save(existingBattery);
+
+      return storageSvcSuccess && labSvcSuccess;
+    } else {
+      return false;
     }
+  }
 
-    public boolean addBatteriesToLabBacklog(int orderId) {
-        List<Object[]> batteryIdTypeIdList = batInvRepo.getBatteryIdTypeIdsForIntakeOrder(orderId);
-        List<BatteryIdType> processLabBatteriesList = convertToProcessLabBatteriesList(batteryIdTypeIdList);
+  protected boolean removeBatteryFromStorage(int batteryId) {
+    RemoveStorageBatteryRequest request =
+        RemoveStorageBatteryRequest.newBuilder().setBatteryId(batteryId).build();
 
-        ProcessLabBatteriesRequest request = ProcessLabBatteriesRequest.newBuilder()
-                .addAllBatteryIdTypes(processLabBatteriesList)
-                .build();
+    RemoveStorageBatteryResponse response =
+        grpcMethodInvoker.invokeNonblock("storagesvc", "removeStorageBattery", request);
 
-        ProcessLabBatteriesResponse response = grpcMethodInvoker.invokeNonblock(
-                "labsvc",
-                "processLabBatteries",
-                request
-        );
-
-        if (response != null && response.getSuccess()) {
-            // Store battery status => Testing
-            batInvRepo.setBatteryStatusesForIntakeOrder(
-                    orderId,
-                    BatteryStatusEnum.TESTING.toString()
-            );
-
-            return true;
-        } else {
-            logger.severe("Order could not be marked as testing: " + orderId);
-            return false;
-        }
+    if (response != null) {
+      return response.getSuccess();
+    } else {
+      return false;
     }
+  }
 
-    @Transactional
-    public boolean updateBatteryStatus(int batteryId, BatteryStatusEnum batteryStatusEnum) {
-        batInvRepo.setBatteryStatusForBatteryId(batteryId, batteryStatusEnum.toString());
+  protected boolean removeBatteryFromLab(int batteryId) {
+    RemoveLabBatteryRequest request =
+        RemoveLabBatteryRequest.newBuilder().setBatteryId(batteryId).build();
 
-        return true;
+    RemoveLabBatteryResponse response =
+        grpcMethodInvoker.invokeNonblock("labsvc", "removeLabBattery", request);
+
+    if (response != null) {
+      return response.getSuccess();
+    } else {
+      return false;
     }
+  }
 
-    public OrderRecordType createNewOrderRecord(ProcessIntakeBatteryOrderRequest request) {
-        Random random = new Random();
+  public List<BatteryInventoryType> getCurrentBatteryInventory() {
+    return batInvRepo.getCurrentBatteryInventory();
+  }
 
-        // Create new order entry
-        int orderTypeId = OrderTypeEnum.INTAKE.getStatusCode();
-        int orderSectorId = random.nextInt(5) + 1; //Randomly select one of the available sectors
-        int customerId = random.nextInt(2) + 1; //Randomly select one of the available customers
-        boolean completed = false;
-        String notes = "";
+  public List<BatteryInventoryType> getBatteryInventory() {
+    return batInvRepo.getBatteryInventory();
+  }
 
-        // Concatenate the type/count info in notes
-        for (BatteryTypeTierCount entry : request.getBatteriesList()) {
-            notes = notes + "[" + entry.getBatteryType() + "]:x" + entry.getBatteryCount() + ",";
-        }
+  public List<BatteryStatusCount> getBatteryStatusCounts() {
+    List<Object[]> batteryStatusCountsList = batInvRepo.getBatteryStatusCounts();
 
-        OrderRecordType intakeOrderRecord = new OrderRecordType(
-                orderTypeId,
-                orderSectorId,
-                customerId,
-                completed,
-                notes
-        );
+    return batteryStatusCountsList.stream()
+        .map(
+            batteryStatusCount ->
+                BatteryStatusCount.newBuilder()
+                    .setBatteryStatus(
+                        BatteryStatusEnum.fromStatusDescription((String) batteryStatusCount[0])
+                            .getGrpcStatus())
+                    .setCount(((Long) batteryStatusCount[1]).intValue())
+                    .build())
+        .collect(Collectors.toList());
+  }
 
-        OrderRecordType newOrderRecord = ordRecRepo.save(intakeOrderRecord);
-        logger.info("After saving order record [" + newOrderRecord.getOrderId() + "], count: " +
-                ordRecRepo.countOrderRecords());
-        return newOrderRecord;
+  public Integer countCustomers() {
+    return customerDataRepo.countCustomers();
+  }
+
+  @Transactional
+  public List<CustomerDataType> getCustomerList() {
+    return customerDataRepo.getCustomerList();
+  }
+
+  @Transactional
+  public boolean addCustomer(CustomerDataType customerData) {
+    customerDataRepo.save(customerData);
+
+    return true;
+  }
+
+  @Transactional
+  public boolean removeCustomer(Integer customerId) {
+    customerDataRepo.deleteById(customerId);
+
+    return true;
+  }
+
+  @Transactional
+  public boolean updateCustomer(Integer customerId, CustomerDataType newCustomerData) {
+    Optional<CustomerDataType> optionalCustomer = customerDataRepo.findById(customerId);
+    if (optionalCustomer.isPresent()) {
+      customerDataRepo.save(newCustomerData);
+
+      return true;
+    } else {
+      throw new RuntimeException("Customer not found with ID: " + customerId);
     }
-
-    private List<BatteryStorageInfo> createNewBatteryStorageList(int orderId, List<BatteryTypeTierCount> batteryList) {
-        List<BatteryStorageInfo> batteryStorageList = new ArrayList<>();
-
-        // Create new batteries
-        for (BatteryTypeTierCount batteryTypeTierCount : batteryList) {
-            for (int i = 0; i < batteryTypeTierCount.getBatteryCount(); i++) {
-                BatteryInventoryType newBattery = createNewBatteryEntry(orderId, batteryTypeTierCount.getBatteryType());
-                batteryStorageList.add(
-                        BatteryStorageInfo.newBuilder()
-                                .setBatteryId(newBattery.getBatteryId())
-                                .setBatteryTier(batteryTypeTierCount.getBatteryTier())
-                                .build()
-                );
-            }
-        }
-
-        logger.info("After saving batteries [" + batteryList.size() + "], count: " + batInvRepo.countBatteryInventory());
-
-        return batteryStorageList;
-    }
-
-    private BatteryInventoryType createNewBatteryEntry(int orderId, int typeId) {
-        // Create new battery entry
-        int batteryStatusId = BatteryStatusEnum.INTAKE.getStatusCode();
-        int intakeOrderId = orderId;
-        int batteryTypeId = typeId;
-
-        BatteryInventoryType batteryInventoryEntry = new BatteryInventoryType(
-                batteryStatusId,
-                batteryTypeId,
-                intakeOrderId
-        );
-
-        logger.info("Creating: " + batteryInventoryEntry);
-        return batInvRepo.save(batteryInventoryEntry);
-    }
-
-    @Transactional
-    public boolean destroyBattery(Integer batteryId) {
-        // check if battery is present in inventory before deleting
-        Optional<BatteryInventoryType> optionalBattery = batInvRepo.findById(batteryId);
-        if (optionalBattery.isPresent() &&
-                (
-                        // if the battery is still physically in the factory
-                        optionalBattery.get().getBatteryStatusId() == BatteryStatusEnum.INTAKE.getStatusCode() ||
-                                optionalBattery.get().getBatteryStatusId() == BatteryStatusEnum.TESTING.getStatusCode() ||
-                                optionalBattery.get().getBatteryStatusId() == BatteryStatusEnum.REFURB.getStatusCode() ||
-                                optionalBattery.get().getBatteryStatusId() == BatteryStatusEnum.STORAGE.getStatusCode() ||
-                                optionalBattery.get().getBatteryStatusId() == BatteryStatusEnum.HOLD.getStatusCode()
-                )
-        ) {
-            BatteryInventoryType existingBattery = optionalBattery.get();
-            int batId = existingBattery.getBatteryId();
-
-            boolean labSvcSuccess = true;
-            // if battery is being processed in the lab, remove it
-            if (existingBattery.getBatteryStatusId() == BatteryStatusEnum.TESTING.getStatusCode() ||
-                    existingBattery.getBatteryStatusId() == BatteryStatusEnum.REFURB.getStatusCode()) {
-                //labSvc.removeBattery
-                labSvcSuccess = removeBatteryFromLab(batId);
-                if (labSvcSuccess) {
-                    logger.info("Battery " + batId + " successfully removed from lab.");
-                } else {
-                    logger.severe("Battery " + batId + " NOT successfully removed from lab.");
-                }
-            }
-
-            // remove battery from storage
-            boolean storageSvcSuccess = removeBatteryFromStorage(batId);
-            if (storageSvcSuccess) {
-                logger.info("Battery " + batId + " successfully removed from storage.");
-            } else {
-                logger.severe("Battery " + batId + " NOT successfully removed from storage.");
-            }
-
-            // TODO: Check/Update ShippingSvc in the future, if necessary
-
-            existingBattery.setHoldId(null);
-            existingBattery.setBatteryStatusId(BatteryStatusEnum.DESTROYED.getStatusCode());
-            batInvRepo.save(existingBattery);
-
-            return storageSvcSuccess && labSvcSuccess;
-        } else {
-            return false;
-        }
-    }
-
-    protected boolean removeBatteryFromStorage(int batteryId) {
-        RemoveStorageBatteryRequest request = RemoveStorageBatteryRequest.newBuilder()
-                .setBatteryId(batteryId)
-                .build();
-
-        RemoveStorageBatteryResponse response = grpcMethodInvoker.invokeNonblock(
-                "storagesvc",
-                "removeStorageBattery",
-                request
-        );
-
-        if (response != null) {
-            return response.getSuccess();
-        } else {
-            return false;
-        }
-    }
-
-    protected boolean removeBatteryFromLab(int batteryId) {
-        RemoveLabBatteryRequest request = RemoveLabBatteryRequest.newBuilder()
-                .setBatteryId(batteryId)
-                .build();
-
-        RemoveLabBatteryResponse response = grpcMethodInvoker.invokeNonblock(
-                "labsvc",
-                "removeLabBattery",
-                request
-        );
-
-        if (response != null) {
-            return response.getSuccess();
-        } else {
-            return false;
-        }
-    }
-
-    public List<BatteryInventoryType> getCurrentBatteryInventory() {
-        return batInvRepo.getCurrentBatteryInventory();
-    }
-
-    public List<BatteryInventoryType> getBatteryInventory() {
-        return batInvRepo.getBatteryInventory();
-    }
-
-    public List<BatteryStatusCount> getBatteryStatusCounts() {
-        List<Object[]> batteryStatusCountsList = batInvRepo.getBatteryStatusCounts();
-
-        return batteryStatusCountsList.stream()
-                .map(batteryStatusCount -> BatteryStatusCount.newBuilder()
-                        .setBatteryStatus(BatteryStatusEnum.fromStatusDescription((String) batteryStatusCount[0]).getGrpcStatus())
-                        .setCount(((Long) batteryStatusCount[1]).intValue())
-                        .build())
-                .collect(Collectors.toList());
-    }
-
-    public Integer countCustomers() {
-        return customerDataRepo.countCustomers();
-    }
-
-    @Transactional
-    public List<CustomerDataType> getCustomerList() {
-        return customerDataRepo.getCustomerList();
-    }
-
-    @Transactional
-    public boolean addCustomer(CustomerDataType customerData) {
-        customerDataRepo.save(customerData);
-
-        return true;
-    }
-
-    @Transactional
-    public boolean removeCustomer(Integer customerId) {
-        customerDataRepo.deleteById(customerId);
-
-        return true;
-    }
-
-    @Transactional
-    public boolean updateCustomer(Integer customerId, CustomerDataType newCustomerData) {
-        Optional<CustomerDataType> optionalCustomer = customerDataRepo.findById(customerId);
-        if (optionalCustomer.isPresent()) {
-            customerDataRepo.save(newCustomerData);
-
-            return true;
-        } else {
-            throw new RuntimeException("Customer not found with ID: " + customerId);
-        }
-    }
+  }
 }
