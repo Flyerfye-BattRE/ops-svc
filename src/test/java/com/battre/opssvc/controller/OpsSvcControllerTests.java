@@ -42,8 +42,6 @@ public class OpsSvcControllerTests {
 
   @Test
   void testProcessIntakeBatteryOrder_StoreBatteryAddToLabBacklog_Success() {
-    opsSvcController = new OpsSvcController(opsSvc);
-
     OrderRecordType orderRecord = new OrderRecordType(1, 2, 3, true, "");
     when(opsSvc.createNewOrderRecord(any())).thenReturn(orderRecord);
     when(opsSvc.attemptStoreBatteries(eq(orderRecord.getOrderId()), any())).thenReturn(true);
@@ -67,8 +65,6 @@ public class OpsSvcControllerTests {
 
   @Test
   void testProcessIntakeBatteryOrder_StoreBattery_Failure() {
-    opsSvcController = new OpsSvcController(opsSvc);
-
     OrderRecordType orderRecord = new OrderRecordType(1, 2, 3, true, "");
     when(opsSvc.createNewOrderRecord(any())).thenReturn(orderRecord);
     when(opsSvc.attemptStoreBatteries(eq(orderRecord.getOrderId()), any())).thenReturn(false);
@@ -90,8 +86,6 @@ public class OpsSvcControllerTests {
 
   @Test
   void testProcessIntakeBatteryOrder_AddtoLabBacklog_Failure() {
-    opsSvcController = new OpsSvcController(opsSvc);
-
     OrderRecordType orderRecord = new OrderRecordType(1, 2, 3, true, "");
     when(opsSvc.createNewOrderRecord(any())).thenReturn(orderRecord);
     when(opsSvc.attemptStoreBatteries(eq(orderRecord.getOrderId()), any())).thenReturn(true);
