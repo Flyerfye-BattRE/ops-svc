@@ -1,4 +1,4 @@
-package com.battre.opssvc.service;
+package com.battre.opssvc.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import com.battre.opssvc.controller.OpsSvcController;
 import com.battre.opssvc.enums.ProcessOrderStatusEnum;
 import com.battre.opssvc.model.OrderRecordType;
+import com.battre.opssvc.service.OpsSvc;
 import com.battre.stubs.services.ProcessIntakeBatteryOrderRequest;
 import com.battre.stubs.services.ProcessIntakeBatteryOrderResponse;
 import io.grpc.stub.StreamObserver;

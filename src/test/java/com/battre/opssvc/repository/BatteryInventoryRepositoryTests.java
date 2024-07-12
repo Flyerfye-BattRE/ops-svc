@@ -16,9 +16,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @DataJpaTest
-public class BatteryInventoryRepositoryTest {
+public class BatteryInventoryRepositoryTests {
   private static final Logger logger =
-      Logger.getLogger(BatteryInventoryRepositoryTest.class.getName());
+      Logger.getLogger(BatteryInventoryRepositoryTests.class.getName());
 
   @Autowired private BatteryInventoryRepository batInvRepo;
 

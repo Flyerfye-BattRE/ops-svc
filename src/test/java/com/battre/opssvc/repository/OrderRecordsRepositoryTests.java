@@ -14,8 +14,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @DataJpaTest
-public class OrderRecordsRepositoryTest {
-  private static final Logger logger = Logger.getLogger(OrderRecordsRepositoryTest.class.getName());
+public class OrderRecordsRepositoryTests {
+  private static final Logger logger = Logger.getLogger(OrderRecordsRepositoryTests.class.getName());
 
   @Autowired private OrderRecordsRepository ordRecRepo;
 

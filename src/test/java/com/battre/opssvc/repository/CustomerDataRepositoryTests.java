@@ -9,14 +9,13 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @DataJpaTest
-public class BatteryStatusRepositoryTest {
-  private static final Logger logger =
-      Logger.getLogger(BatteryStatusRepositoryTest.class.getName());
+public class CustomerDataRepositoryTests {
+  private static final Logger logger = Logger.getLogger(CustomerDataRepositoryTests.class.getName());
 
-  @Autowired private BatteryStatusRepository batStatusRepo;
+  @Autowired private CustomerDataRepository custDataRepo;
 
   @Test
-  public void testGetBatteryStatusTypes() {
+  public void testGetCustomerList() {
     // TODO: Implement test
   }
 }
