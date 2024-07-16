@@ -12,20 +12,32 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.battre.grpcifc.GrpcMethodInvoker;
+import com.battre.opssvc.enums.BatteryStatusEnum;
 import com.battre.opssvc.model.BatteryInventoryType;
+import com.battre.opssvc.model.CustomerDataType;
 import com.battre.opssvc.model.OrderRecordType;
 import com.battre.opssvc.repository.BatteryInventoryRepository;
 import com.battre.opssvc.repository.BatteryStatusRepository;
 import com.battre.opssvc.repository.CustomerDataRepository;
 import com.battre.opssvc.repository.OrderRecordsRepository;
 import com.battre.stubs.services.BatteryIdType;
+import com.battre.stubs.services.BatteryStatusCount;
 import com.battre.stubs.services.BatteryTypeTierCount;
 import com.battre.stubs.services.ProcessIntakeBatteryOrderRequest;
 import com.battre.stubs.services.ProcessLabBatteriesRequest;
 import com.battre.stubs.services.ProcessLabBatteriesResponse;
+import com.battre.stubs.services.RemoveLabBatteryRequest;
+import com.battre.stubs.services.RemoveLabBatteryResponse;
+import com.battre.stubs.services.RemoveStorageBatteryRequest;
+import com.battre.stubs.services.RemoveStorageBatteryResponse;
 import com.battre.stubs.services.StoreBatteryRequest;
 import com.battre.stubs.services.StoreBatteryResponse;
+
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,10 +63,22 @@ class OpsSvcTests {
         .thenReturn(response);
   }
 
+  public void mockRemoveBatteryFromStorage(RemoveStorageBatteryResponse response) {
+    when(grpcMethodInvoker.invokeNonblock(
+            eq("storagesvc"), eq("removeStorageBattery"), any(RemoveStorageBatteryRequest.class)))
+        .thenReturn(response);
+  }
+
+  public void mockRemoveBatteryFromLab(RemoveLabBatteryResponse response) {
+    when(grpcMethodInvoker.invokeNonblock(
+            eq("labsvc"), eq("removeLabBattery"), any(RemoveLabBatteryRequest.class)))
+            .thenReturn(response);
+  }
+
   public void mockProcessLabBatteries(ProcessLabBatteriesResponse response) {
     when(grpcMethodInvoker.invokeNonblock(
             eq("labsvc"), eq("processLabBatteries"), any(ProcessLabBatteriesRequest.class)))
-        .thenReturn(response);
+            .thenReturn(response);
   }
 
   @BeforeEach
@@ -220,41 +244,168 @@ class OpsSvcTests {
 
   @Test
   void testUpdateBatteryStatus() {
-    // TODO: Implement test
+    int batteryId = 1;
+    BatteryStatusEnum newStatus = BatteryStatusEnum.TESTING;
+
+    boolean result = opsSvc.updateBatteryStatus(batteryId, newStatus);
+
+    assertTrue(result);
+    verify(batInvRepo).setBatteryStatusForBatteryId(batteryId, newStatus.toString());
   }
 
   @Test
   void testDestroyBattery() {
-    // TODO: Implement test
+    int batteryId = 1;
+    BatteryInventoryType mockBattery = new BatteryInventoryType();
+    mockBattery.setBatteryStatusId(BatteryStatusEnum.TESTING.getStatusCode());
+    mockBattery.setBatteryId(batteryId);
+
+    Optional<BatteryInventoryType> optionalBattery = Optional.of(mockBattery);
+    doReturn(optionalBattery).when(batInvRepo).findById(batteryId);
+
+    RemoveStorageBatteryResponse successStorageResponse =
+            RemoveStorageBatteryResponse.newBuilder().setSuccess(true).build();
+    mockRemoveBatteryFromStorage(successStorageResponse);
+
+    RemoveLabBatteryResponse successLabResponse =
+            RemoveLabBatteryResponse.newBuilder().setSuccess(true).build();
+    mockRemoveBatteryFromLab(successLabResponse);
+
+    boolean result = opsSvc.destroyBattery(batteryId);
+
+    assertTrue(result);
+
+    // verify the removeStorageBattery grpc call
+    ArgumentCaptor<RemoveStorageBatteryRequest> storageCaptor =
+            ArgumentCaptor.forClass(RemoveStorageBatteryRequest.class);
+    verify(grpcMethodInvoker)
+            .invokeNonblock(eq("storagesvc"), eq("removeStorageBattery"), storageCaptor.capture());
+    assertEquals(batteryId, storageCaptor.getValue().getBatteryId());
+
+    // verify the removeLabBattery grpc call
+    ArgumentCaptor<RemoveLabBatteryRequest> labCaptor =
+            ArgumentCaptor.forClass(RemoveLabBatteryRequest.class);
+    verify(grpcMethodInvoker)
+            .invokeNonblock(eq("labsvc"), eq("removeLabBattery"), labCaptor.capture());
+    assertEquals(batteryId, labCaptor.getValue().getBatteryId());
   }
 
   @Test
   void testGetCurrentBatteryInventory() {
-    // TODO: Implement test
+    List<BatteryInventoryType> mockInventory = Arrays.asList(
+            new BatteryInventoryType(1, 1, 1),
+            new BatteryInventoryType(2, 2, 2)
+    );
+    doReturn(mockInventory).when(batInvRepo).getCurrentBatteryInventory();
+
+    List<BatteryInventoryType> result = opsSvc.getCurrentBatteryInventory();
+
+    assertNotNull(result);
+    assertEquals(mockInventory.size(), result.size());
+    verify(batInvRepo).getCurrentBatteryInventory();
   }
 
   @Test
   void testGetBatteryInventory() {
-    // TODO: Implement test
+    List<BatteryInventoryType> mockInventory = Arrays.asList(
+            new BatteryInventoryType(1, 1, 1),
+            new BatteryInventoryType(2, 2, 2)
+    );
+    doReturn(mockInventory).when(batInvRepo).getBatteryInventory();
+
+    List<BatteryInventoryType> result = opsSvc.getBatteryInventory();
+
+    assertNotNull(result);
+    assertEquals(mockInventory.size(), result.size());
+    verify(batInvRepo).getBatteryInventory();
   }
+
+  @Test
+  void testGetBatteryStatusCounts() {
+    List<Object[]> mockCounts = Arrays.asList(
+            new Object[] {BatteryStatusEnum.STORAGE.toString(), 10L},
+            new Object[] {BatteryStatusEnum.TESTING.toString(), 5L}
+    );
+    doReturn(mockCounts).when(batInvRepo).getBatteryStatusCounts();
+
+    List<BatteryStatusCount> result = opsSvc.getBatteryStatusCounts();
+
+    assertNotNull(result);
+    assertEquals(mockCounts.size(), result.size());
+
+    assertEquals(BatteryStatusEnum.STORAGE.getGrpcStatus(), result.get(0).getBatteryStatus());
+    assertEquals(10, result.get(0).getCount());
+    assertEquals(BatteryStatusEnum.TESTING.getGrpcStatus(), result.get(1).getBatteryStatus());
+    assertEquals(5, result.get(1).getCount());
+
+    verify(batInvRepo).getBatteryStatusCounts();
+  }
+
+
+  @Test
+  void testCountCustomers() {
+    int mockCount = 5;
+    doReturn(mockCount).when(customerDataRepo).countCustomers();
+
+    Integer result = opsSvc.countCustomers();
+
+    assertNotNull(result);
+    assertEquals(mockCount, result.intValue());
+
+    verify(customerDataRepo).countCustomers();
+  }
+
 
   @Test
   void testGetCustomerList() {
-    // TODO: Implement test
+    List<CustomerDataType> mockCustomers = Arrays.asList(
+            new CustomerDataType("John", "Doe", "e@mail.com", "555-555-5555", "555 North St", UUID.randomUUID()),
+            new CustomerDataType("Jane", "Smith", "other.e@mail.com", "444-444-4444", "444 North St", UUID.randomUUID())
+    );
+    doReturn(mockCustomers).when(customerDataRepo).getCustomerList();
+
+    List<CustomerDataType> result = opsSvc.getCustomerList();
+
+    assertNotNull(result);
+    assertEquals(mockCustomers.size(), result.size());
+
+    verify(customerDataRepo).getCustomerList();
   }
+
 
   @Test
   void testAddCustomer() {
-    // TODO: Implement test
+    CustomerDataType newCustomer = new CustomerDataType("John", "Doe", "e@mail.com", "555-555-5555", "555 North St", UUID.randomUUID());
+
+    boolean result = opsSvc.addCustomer(newCustomer);
+
+    assertTrue(result);
+    verify(customerDataRepo).save(newCustomer);
   }
 
   @Test
   void testRemoveCustomer() {
-    // TODO: Implement test
+    int customerId = 1;
+
+    boolean result = opsSvc.removeCustomer(customerId);
+
+    assertTrue(result);
+    verify(customerDataRepo).deleteById(customerId);
   }
+
 
   @Test
   void testUpdateCustomer() {
-    // TODO: Implement test
+    int customerId = 1;
+    CustomerDataType updatedCustomer = new CustomerDataType("John", "Doe", "e@mail.com", "555-555-5555", "555 North St", UUID.randomUUID());
+
+    doReturn(Optional.of(new CustomerDataType("Johnny", "Doey", "e@mail.com", "555-555-5555", "555 North St", UUID.randomUUID()))).when(customerDataRepo).findById(customerId);
+
+    boolean result = opsSvc.updateCustomer(customerId, updatedCustomer);
+
+    assertTrue(result);
+    verify(customerDataRepo).findById(customerId);
+    verify(customerDataRepo).save(updatedCustomer);
   }
+
 }

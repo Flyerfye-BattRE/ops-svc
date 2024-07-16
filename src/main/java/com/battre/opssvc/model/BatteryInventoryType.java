@@ -62,6 +62,11 @@ public class BatteryInventoryType {
     return batteryId;
   }
 
+  // for testing purposes
+  public void setBatteryId(int batteryId) {
+    this.batteryId = batteryId;
+  }
+
   public int getBatteryStatusId() {
     return batteryStatusId;
   }
