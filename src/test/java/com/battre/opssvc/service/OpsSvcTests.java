@@ -45,7 +45,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.boot.test.context.SpringBootTest;
 
+@SpringBootTest(properties = "grpc.server.port=9022")
 class OpsSvcTests {
   @Mock private BatteryInventoryRepository batInvRepo;
   @Mock private BatteryStatusRepository batStatusRepo;

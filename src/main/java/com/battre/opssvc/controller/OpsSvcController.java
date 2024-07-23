@@ -116,8 +116,8 @@ public class OpsSvcController extends OpsSvcGrpc.OpsSvcImplBase {
   public void updateBatteryStatus(
       UpdateBatteryStatusRequest request,
       StreamObserver<UpdateBatteryStatusResponse> responseObserver) {
-    int batteryId = request.getBattery().getBatteryId();
-    String batteryStatus = request.getBattery().getBatteryStatus().toString();
+    int batteryId = request.getBatteryIdStatus().getBatteryId();
+    String batteryStatus = request.getBatteryIdStatus().getBatteryStatus().toString();
     logger.info(
         "updateBatteryStatus() invoked for [" + batteryId + "] and status [" + batteryStatus + "]");
 

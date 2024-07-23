@@ -43,7 +43,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.boot.test.context.SpringBootTest;
 
+@SpringBootTest(properties = "grpc.server.port=9021")
 public class OpsSvcControllerTests {
   @Mock private OpsSvc opsSvc;
 
@@ -152,7 +154,7 @@ public class OpsSvcControllerTests {
   @Test
   void testUpdateBatteryStatus() {
     UpdateBatteryStatusRequest request = UpdateBatteryStatusRequest.newBuilder()
-            .setBattery(BatteryIdStatus.newBuilder().setBatteryId(1).setBatteryStatus(BatteryStatus.TESTING))
+            .setBatteryIdStatus(BatteryIdStatus.newBuilder().setBatteryId(1).setBatteryStatus(BatteryStatus.TESTING))
             .build();
 
     boolean updateSuccess = true;
