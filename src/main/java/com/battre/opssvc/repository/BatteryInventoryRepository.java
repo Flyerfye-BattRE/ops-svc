@@ -58,7 +58,7 @@ public interface BatteryInventoryRepository extends JpaRepository<BatteryInvento
   @Query(
       "SELECT bit "
           + "FROM BatteryInventoryType AS bit "
-          + "WHERE bit.intakeOrderId <= 6 "
+          + "WHERE bit.batteryStatusId <= 6 "
           + "ORDER BY batteryId")
   List<BatteryInventoryType> getCurrentBatteryInventory();
 
